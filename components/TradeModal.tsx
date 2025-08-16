@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Bond, User } from '../types';
 import Spinner from './shared/Spinner';
-import { generateGeminiAnalysis } from '../services/geminiService';
 import { Icons } from './Icons';
 
 interface TradeModalProps {
@@ -10,31 +9,21 @@ interface TradeModalProps {
   handleTrade: (bond: Bond, quantity: number, tradeType: 'buy' | 'sell') => void;
   user: User;
   addToast: (message: string, type?: 'success' | 'error') => void;
+  isContingencyMode: boolean;
 }
 
 
-const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, user }) => {
+const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, user, isContingencyMode }) => {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState(100000); // Default 1 Lakh
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
   
   const units = useMemo(() => {
-    return amount / bond.currentPrice;
+    return amount > 0 ? amount / bond.currentPrice : 0;
   }, [amount, bond.currentPrice]);
-
-  const handleAskGemini = async () => {
-    setIsLoadingAnalysis(true);
-    setAnalysis(null);
-    try {
-        const result = await generateGeminiAnalysis('bond', bond);
-        setAnalysis(result);
-    } catch (err) {
-        setAnalysis("Error fetching analysis.");
-    } finally {
-        setIsLoadingAnalysis(false);
-    }
-  }
+  
+  const transactionCost = useMemo(() => {
+    return 5 + (amount * 0.0001); // Fixed fee + 0.01%
+  }, [amount]);
   
   const onExecuteTrade = () => {
     if (amount <= 0) {
@@ -42,7 +31,7 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
         return;
     }
     
-    if (tradeType === 'buy' && amount > user.balance) {
+    if (tradeType === 'buy' && (amount + transactionCost) > user.balance) {
         alert("Insufficient funds.");
         return;
     }
@@ -54,11 +43,23 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
     onClose();
   };
   
-  const insufficientFunds = tradeType === 'buy' && amount > user.balance;
+  const totalDeduction = amount + transactionCost;
+  const insufficientFunds = tradeType === 'buy' && totalDeduction > user.balance;
+  
+  const getNewBalance = () => {
+      if (tradeType === 'buy') {
+          return user.balance - totalDeduction;
+      }
+      return user.balance + (amount - transactionCost);
+  }
+
+  const fairValue = isContingencyMode ? bond.standardFairValue : bond.aiFairValue;
+  const fairValueLabel = isContingencyMode ? 'Standard Fair Value' : 'Quantum Fair Value';
+  const fairValueColor = isContingencyMode ? 'text-brand-yellow' : 'text-brand-primary';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
-      <div className="bg-brand-surface rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-brand-border shadow-2xl relative">
+      <div className="bg-brand-surface rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto border border-brand-border shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-text-secondary hover:text-white text-2xl font-bold">&times;</button>
         <div className="p-6">
           <div className="text-center mb-6">
@@ -72,14 +73,14 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
                     <p className="text-2xl font-mono font-bold text-white">₹{bond.currentPrice.toFixed(2)}</p>
                 </div>
                  <div className="bg-brand-bg p-4 rounded-lg text-center">
-                    <p className="text-sm text-brand-text-secondary">AI Fair Value</p>
-                    <p className="text-2xl font-mono font-bold text-brand-primary">₹{bond.aiFairValue.toFixed(2)}</p>
+                    <p className="text-sm text-brand-text-secondary">{fairValueLabel}</p>
+                    <p className={`text-2xl font-mono font-bold ${fairValueColor}`}>₹{fairValue.toFixed(2)}</p>
                 </div>
            </div>
 
            <div className="bg-brand-bg rounded-lg p-6">
              <div className="flex bg-brand-surface rounded-md p-1 mb-4">
-                <button onClick={() => setTradeType('buy')} className={`w-1/2 p-2 rounded-md font-semibold transition-colors ${tradeType === 'buy' ? 'bg-brand-green text-white' : 'text-brand-text-secondary hover:bg-brand-border'}`}>Buy</button>
+                <button onClick={() => setTradeType('buy')} className={`w-1/2 p-2 rounded-md font-semibold transition-colors ${tradeType === 'buy' ? 'bg-brand-green text-black' : 'text-brand-text-secondary hover:bg-brand-border'}`}>Buy</button>
                 <button onClick={() => setTradeType('sell')} className={`w-1/2 p-2 rounded-md font-semibold transition-colors ${tradeType === 'sell' ? 'bg-brand-red text-white' : 'text-brand-text-secondary hover:bg-brand-border'}`}>Sell</button>
             </div>
             
@@ -99,15 +100,20 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
 
             <div className="mt-4 space-y-2 text-sm text-brand-text-secondary">
                 <div className="flex justify-between"><span>Units to {tradeType}:</span><span className="font-mono text-white">{units.toFixed(4)}</span></div>
-                 <div className="flex justify-between"><span>Available Balance:</span><span className="font-mono text-white">₹{user.balance.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between font-bold"><span className="text-brand-text">New Balance after Trade:</span><span className={`font-mono ${insufficientFunds ? 'text-brand-red' : 'text-white'}`}>₹{(user.balance + (tradeType === 'sell' ? amount : -amount)).toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between"><span>Est. Transaction Cost:</span><span className="font-mono text-white">₹{transactionCost.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Available Balance:</span><span className="font-mono text-white">₹{user.balance.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between font-bold"><span className="text-brand-text">New Balance after Trade:</span><span className={`font-mono ${insufficientFunds ? 'text-brand-red' : 'text-white'}`}>₹{getNewBalance().toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
             </div>
              {insufficientFunds && <p className="text-brand-red text-sm text-center mt-3">You do not have enough funds for this purchase.</p>}
 
+            <div className="text-xs text-center text-brand-text-secondary mt-4 p-3 bg-brand-bg rounded-lg border border-brand-border">
+                <p><strong>Fractional Ownership Enabled:</strong> You are purchasing a fraction of a bond, tokenized on the QuantumBond platform for greater accessibility.</p>
+            </div>
+
             <button 
                 onClick={onExecuteTrade} 
-                disabled={insufficientFunds}
-                className={`w-full p-3 mt-4 rounded-md font-bold text-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tradeType === 'buy' ? 'bg-brand-green hover:bg-green-700' : 'bg-brand-red hover:bg-red-700'}`}
+                disabled={insufficientFunds || amount <= 0}
+                className={`w-full p-3 mt-4 rounded-md font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tradeType === 'buy' ? 'bg-brand-green text-black hover:opacity-90' : 'bg-brand-red text-white hover:opacity-90'}`}
             >
                 Confirm {tradeType === 'buy' ? 'Buy' : 'Sell'} Order
             </button>

@@ -4,19 +4,24 @@ import { BONDS } from '../constants';
 import { PortfolioHolding, ViewState, User } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Icons } from './Icons';
+import { generatePortfolioOptimizationAnalysis } from '../services/geminiService';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57' ];
+const COLORS = ['#58A6FF', '#1F6FEB', '#3FB950', '#D29922', '#A371F7', '#F85149', '#0366d6', '#9e9e9e'];
+
 
 interface PortfolioProps {
     userPortfolio: PortfolioHolding[];
     navigate: (view: ViewState) => void;
     user: User;
+    isContingencyMode: boolean;
 }
 
-const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user }) => {
+const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, isContingencyMode }) => {
     const [riskProfile, setRiskProfile] = useState('balanced');
+    const [objective, setObjective] = useState('balanced');
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [optimizedData, setOptimizedData] = useState<any[] | null>(null);
+    const [optimizationAnalysis, setOptimizationAnalysis] = useState<string | null>(null);
 
     const portfolioBonds = userPortfolio.map(holding => {
         const bondDetails = BONDS.find(b => b.id === holding.bondId);
@@ -37,24 +42,34 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user }) 
         { name: 'Cash', value: user.balance }
     ];
     
-    const handleOptimize = () => {
+    const handleOptimize = async () => {
         setIsOptimizing(true);
         setOptimizedData(null);
-        setTimeout(() => {
-            const baseAllocations = {
-                conservative: [60, 30, 10],
-                balanced: [40, 40, 20],
-                aggressive: [20, 40, 40]
-            };
-            const allocation = baseAllocations[riskProfile as keyof typeof baseAllocations];
-            const newOptimizedData = [
-                { name: 'High-Grade (AAA)', value: allocation[0] },
-                { name: 'Mid-Grade (AA)', value: allocation[1] },
-                { name: 'Growth (A/BBB)', value: allocation[2] },
-            ];
+        setOptimizationAnalysis(null);
+
+        // This part is for the chart
+        const baseAllocations = {
+            conservative: [60, 30, 10],
+            balanced: [40, 40, 20],
+            aggressive: [20, 40, 40]
+        };
+        const allocation = baseAllocations[riskProfile as keyof typeof baseAllocations];
+        const newOptimizedData = [
+            { name: 'High-Grade (AAA)', value: allocation[0] },
+            { name: 'Mid-Grade (AA)', value: allocation[1] },
+            { name: 'Growth (A/BBB)', value: allocation[2] },
+        ];
+        
+        try {
+            const analysisResult = await generatePortfolioOptimizationAnalysis(portfolioBonds, user.balance, riskProfile, objective);
+            setOptimizationAnalysis(analysisResult);
+        } catch (error) {
+            console.error("Failed to fetch Gemini analysis:", error);
+            setOptimizationAnalysis("<p>Error: Could not generate portfolio analysis at this time.</p>");
+        } finally {
             setOptimizedData(newOptimizedData);
             setIsOptimizing(false);
-        }, 2000);
+        }
     };
 
     return (
@@ -113,38 +128,73 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user }) 
             </div>
             
             <Card>
-                <h3 className="text-2xl font-bold mb-4">Quantum Portfolio Optimizer</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div className="md:col-span-2">
-                        <label className="block text-brand-text-secondary mb-2">Select Risk Profile</label>
-                        <select
-                            value={riskProfile}
-                            onChange={(e) => setRiskProfile(e.target.value)}
-                            className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
-                        >
-                            <option value="conservative">Conservative</option>
-                            <option value="balanced">Balanced</option>
-                            <option value="aggressive">Aggressive</option>
-                        </select>
-                    </div>
-                    <button onClick={handleOptimize} disabled={isOptimizing} className="bg-brand-primary text-white py-2 px-4 rounded-md font-semibold hover:bg-brand-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
-                        {isOptimizing ? <><Icons.spinner className="animate-spin" /><span>Optimizing...</span></> : <span>Run Optimizer</span>}
-                    </button>
+                <div className="flex items-center space-x-2 mb-4">
+                    <Icons.gemini />
+                    <h3 className="text-2xl font-bold">
+                        {isContingencyMode ? 'Standard Portfolio Analysis' : 'Quantum Annealing Optimizer'}
+                    </h3>
                 </div>
-                {optimizedData && (
-                    <div className="mt-6">
-                        <h4 className="text-xl font-semibold mb-4">Suggested Allocation</h4>
-                        <ResponsiveContainer width="100%" height={300}>
-                             <PieChart>
-                                <Pie data={optimizedData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={(entry) => `${entry.name} ${entry.value}%`}>
-                                    {optimizedData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
-                            </PieChart>
-                        </ResponsiveContainer>
+                {isContingencyMode ? (
+                     <div className="text-center py-8 bg-brand-bg rounded-lg">
+                        <Icons.zap className="h-12 w-12 mx-auto text-brand-yellow mb-2" />
+                        <h4 className="text-lg font-semibold text-brand-yellow">Feature Unavailable in Standard Mode</h4>
+                        <p className="text-brand-text-secondary mt-1">The Quantum Optimizer requires a connection to the QPU, which is currently offline.<br/>Standard portfolio analysis tools are available.</p>
                     </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <div>
+                                <label className="block text-brand-text-secondary mb-2">Select Risk Profile</label>
+                                <select
+                                    value={riskProfile}
+                                    onChange={(e) => setRiskProfile(e.target.value)}
+                                    className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
+                                >
+                                    <option value="conservative">Conservative</option>
+                                    <option value="balanced">Balanced</option>
+                                    <option value="aggressive">Aggressive</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-brand-text-secondary mb-2">Select Primary Objective</label>
+                                <select
+                                    value={objective}
+                                    onChange={(e) => setObjective(e.target.value)}
+                                    className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
+                                >
+                                    <option value="balanced">Balanced Growth</option>
+                                    <option value="yield">Maximize Yield</option>
+                                    <option value="esg">High ESG Score</option>
+                                </select>
+                            </div>
+                            <button onClick={handleOptimize} disabled={isOptimizing} className="bg-brand-primary text-black py-2 px-4 rounded-md font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+                                {isOptimizing ? <><Icons.spinner className="animate-spin" /><span>Optimizing...</span></> : <span>Run Optimizer</span>}
+                            </button>
+                        </div>
+                        {optimizedData && (
+                            <div className="mt-8 pt-6 border-t border-brand-border grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                <div>
+                                    <h4 className="text-xl font-semibold mb-4 text-center">Suggested Allocation</h4>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie data={optimizedData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={(entry) => `${entry.name} ${entry.value}%`}>
+                                                {optimizedData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                {optimizationAnalysis && (
+                                    <div className="h-full">
+                                        <h4 className="text-xl font-semibold mb-4 text-center">Gemini Analysis & Recommendations</h4>
+                                        <div className="gemini-analysis bg-brand-bg p-4 rounded-lg text-brand-text-secondary h-[300px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: optimizationAnalysis }} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </Card>
         </div>

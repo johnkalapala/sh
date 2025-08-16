@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
 import { generateGeminiAnalysis } from '../services/geminiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BONDS } from '../constants';
 import { Icons } from './Icons';
-import { ViewState } from '../types';
-import LiveTransactionFeed from './analytics/LiveTransactionFeed';
+import { ViewState, Bond, TransactionEvent } from '../types';
+import MarketIntelligence from './MarketIntelligence';
 
 const marketData = Array.from({ length: 12 }, (_, i) => ({
   name: new Date(0, i).toLocaleString('default', { month: 'short' }),
@@ -33,7 +33,7 @@ const SystemHealthOverview: React.FC<{ backendState: any; navigate: (v: ViewStat
             </div>
              <div className="flex items-center justify-between">
                 <span className="text-brand-text-secondary">Matching Engine (ops/s)</span>
-                <span className="font-mono text-white">{metrics.OrderMatch.value.toFixed(0)}</span>
+                <span className="font-mono text-white">{metrics.OrderMatch.value.toLocaleString()}</span>
             </div>
              <div className="flex items-center justify-between">
                 <span className="text-brand-text-secondary">Total Transactions</span>
@@ -49,16 +49,58 @@ const SystemHealthOverview: React.FC<{ backendState: any; navigate: (v: ViewStat
     );
 };
 
+const TopMovers: React.FC<{ movers: Bond[], navigate: (v: ViewState) => void }> = ({ movers, navigate }) => {
+    const gainers = movers.filter(m => m.dayChange > 0).sort((a,b) => b.dayChange - a.dayChange).slice(0,3);
+    const losers = movers.filter(m => m.dayChange < 0).sort((a,b) => a.dayChange - b.dayChange).slice(0,3);
+
+    const MoverRow = ({ bond }: { bond: Bond }) => (
+         <button onClick={() => navigate({ page: 'bondDetail', bondId: bond.id })} className="flex justify-between items-center text-left w-full hover:bg-brand-bg p-1 rounded-md">
+            <div>
+                <p className="font-semibold text-sm text-brand-text">{bond.issuer}</p>
+                <p className="text-xs text-brand-text-secondary">{bond.isin}</p>
+            </div>
+            <span className={`font-mono text-sm font-bold ${bond.dayChange > 0 ? 'text-brand-green' : 'text-brand-red'}`}>
+                {bond.dayChange > 0 ? '+' : ''}{bond.dayChange.toFixed(2)}%
+            </span>
+        </button>
+    );
+
+    return (
+        <div>
+            <div className="mb-4">
+                <h4 className="font-semibold text-brand-green mb-2">Top Gainers</h4>
+                <div className="space-y-2">
+                    {gainers.map(g => <MoverRow key={g.id} bond={g} />)}
+                </div>
+            </div>
+            <div>
+                <h4 className="font-semibold text-brand-red mb-2">Top Losers</h4>
+                 <div className="space-y-2">
+                    {losers.map(l => <MoverRow key={l.id} bond={l} />)}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 interface DashboardProps {
   navigate: (view: ViewState) => void;
   backendState: any;
+  topMovers: Bond[];
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState }) => {
+const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers }) => {
   const [analysis, setAnalysis] = useState<string>('');
   const [entropy, setEntropy] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  const totalVolume = useMemo(() => {
+    return backendState.transactions
+        .filter((tx: TransactionEvent) => tx.status === 'SUCCESS' && tx.type === 'SETTLEMENT')
+        .reduce((sum: number) => sum + (Math.random() * 500000) + 100000, 0); // Simulate some value
+  }, [backendState.transactions]);
+
 
   useEffect(() => {
     const fetchAllAnalyses = async () => {
@@ -81,8 +123,23 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState }) => {
     fetchAllAnalyses();
   }, []);
   
-  const [entropyScore, entropyText] = entropy.split(' - ');
-  const entropyValue = parseInt(entropyScore?.split('/')[0] || '0');
+  const [entropyScore, entropyText] = useMemo(() => {
+    if (!entropy) return ['N/A', 'Loading...'];
+    // The markdown might add **
+    const cleanedEntropy = entropy.replace(/\*/g, '');
+    const bracketIndex = cleanedEntropy.indexOf('(');
+    if (bracketIndex !== -1) {
+        const scorePart = cleanedEntropy.substring(0, bracketIndex).trim();
+        const textPart = cleanedEntropy.substring(bracketIndex + 1, cleanedEntropy.indexOf(')')).trim();
+        return [scorePart, textPart];
+    }
+    return [cleanedEntropy, ''];
+  }, [entropy]);
+
+  const entropyValue = useMemo(() => {
+      if(!entropyScore) return 0;
+      return parseInt(entropyScore.split('/')[0] || '0', 10);
+  }, [entropyScore]);
 
 
   return (
@@ -94,7 +151,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState }) => {
              <Icons.volume />
              <h3 className="text-lg font-semibold text-brand-text-secondary">Market Volume (Cr)</h3>
           </div>
-          <p className="text-3xl font-bold text-white">₹{backendState.metrics.Settlement.value.toLocaleString('en-IN')}</p>
+          <p className="text-3xl font-bold text-white">₹{(totalVolume / 10000000).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
           <p className="text-sm text-brand-green">+2.5% vs yesterday</p>
         </Card>
         <Card>
@@ -147,21 +204,25 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState }) => {
                 <SystemHealthOverview backendState={backendState} navigate={navigate} />
             </Card>
             <Card>
-                <h3 className="text-xl font-semibold mb-4">Live Transaction Feed</h3>
-                <LiveTransactionFeed transactions={backendState.transactions} limit={5} />
+                <h3 className="text-xl font-semibold mb-4">Top Movers (24h)</h3>
+                <TopMovers movers={topMovers} navigate={navigate} />
             </Card>
         </div>
       </div>
-
-      <Card>
-        <div className="flex items-center space-x-2 mb-4">
-          <Icons.gemini />
-          <h3 className="text-xl font-semibold">Gemini Market Analyst</h3>
-        </div>
-        {isLoading ? <Spinner /> : (
-          <div className="gemini-analysis text-brand-text-secondary" dangerouslySetInnerHTML={{ __html: analysis }} />
-        )}
-      </Card>
+       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <Card className="lg:col-span-3">
+            <div className="flex items-center space-x-2 mb-4">
+              <Icons.gemini />
+              <h3 className="text-xl font-semibold">Quantum-Bio Analyst</h3>
+            </div>
+            {isLoading ? <Spinner /> : (
+              <div className="gemini-analysis text-brand-text-secondary" dangerouslySetInnerHTML={{ __html: analysis }} />
+            )}
+          </Card>
+           <Card className="lg:col-span-2">
+                <MarketIntelligence />
+            </Card>
+       </div>
     </div>
   );
 };

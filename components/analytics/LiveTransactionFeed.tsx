@@ -31,12 +31,21 @@ const LiveTransactionFeed: React.FC<LiveTransactionFeedProps> = ({ transactions,
     <div className={`bg-brand-bg rounded-lg p-2 space-y-2 ${!limit ? 'h-[520px] overflow-y-auto' : ''}`}>
       {displayedTransactions.length > 0 ? displayedTransactions.map(tx => (
         <div key={tx.id} className={`p-2 bg-brand-surface rounded-md border-l-2 ${getTypeColor(tx.type)}`}>
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-xs text-brand-text">{tx.type}</span>
-            <span className={`text-xs font-bold ${getStatusColor(tx.status)}`}>{tx.status}</span>
+          <div className="flex justify-between items-start">
+            <div>
+                <span className="font-semibold text-xs text-brand-text">{tx.type}</span>
+                <p className="text-xs text-brand-text-secondary truncate pr-2">{tx.details}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+                <span className={`text-xs font-bold ${getStatusColor(tx.status)}`}>{tx.status}</span>
+                <p className="text-xs text-gray-500">{new Date(tx.timestamp).toLocaleTimeString()}</p>
+            </div>
           </div>
-          <p className="text-xs text-brand-text-secondary truncate">{tx.details}</p>
-          <p className="text-right text-xs text-gray-500">{new Date(tx.timestamp).toLocaleTimeString()}</p>
+           {tx.dltHash && (
+                <div className="mt-1 pt-1 border-t border-brand-border">
+                    <p className="text-xs text-purple-400 font-mono truncate" title={tx.dltHash}>DLT Hash: {tx.dltHash.substring(0, 20)}...</p>
+                </div>
+            )}
         </div>
       )) : (
         <div className="flex items-center justify-center h-full">

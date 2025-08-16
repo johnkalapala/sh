@@ -54,7 +54,7 @@ const OrderBook: React.FC<OrderBookProps> = ({ currentPrice }) => {
       <div className="space-y-1">
         {asks.map((ask, index) => (
           <div key={index} className="relative h-5 flex items-center justify-between px-2">
-             <div className="absolute top-0 left-0 h-full bg-red-500 bg-opacity-20" style={{ width: `${(ask.cumulative / maxCumulative) * 100}%` }} />
+             <div className="absolute top-0 right-0 h-full bg-brand-red/20" style={{ width: `${(ask.cumulative / maxCumulative) * 100}%` }} />
              <span className="relative text-brand-red">{ask.price.toFixed(2)}</span>
              <span className="relative">{ask.size.toLocaleString()}</span>
              <span className="relative">{ask.cumulative.toLocaleString()}</span>
@@ -67,7 +67,7 @@ const OrderBook: React.FC<OrderBookProps> = ({ currentPrice }) => {
        <div className="space-y-1">
         {bids.map((bid, index) => (
           <div key={index} className="relative h-5 flex items-center justify-between px-2">
-            <div className="absolute top-0 left-0 h-full bg-green-500 bg-opacity-20" style={{ width: `${(bid.cumulative / maxCumulative) * 100}%` }} />
+            <div className="absolute top-0 right-0 h-full bg-brand-green/20" style={{ width: `${(bid.cumulative / maxCumulative) * 100}%` }} />
             <span className="relative text-brand-green">{bid.price.toFixed(2)}</span>
             <span className="relative">{bid.size.toLocaleString()}</span>
             <span className="relative">{bid.cumulative.toLocaleString()}</span>

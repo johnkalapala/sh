@@ -20,9 +20,11 @@ export interface Bond {
   creditRating: CreditRating;
   currentPrice: number;
   aiFairValue: number;
+  standardFairValue: number;
   isin: string;
   volume: number;
   bidAskSpread: number;
+  dayChange: number;
 }
 
 export interface PortfolioHolding {
@@ -31,7 +33,7 @@ export interface PortfolioHolding {
   purchasePrice: number;
 }
 
-export type Page = 'dashboard' | 'marketplace' | 'portfolio' | 'bondDetail' | 'system-analytics';
+export type Page = 'dashboard' | 'marketplace' | 'portfolio' | 'bondDetail' | 'system-analytics' | 'integrations' | 'hardware-acceleration';
 
 export type ViewState = {
   page: Page;
@@ -42,6 +44,7 @@ export interface User {
   isConnected: boolean;
   walletAddress: string;
   balance: number; // in INR
+  kycStatus: 'unverified' | 'pending' | 'verified';
 }
 
 export interface ToastMessage {
@@ -51,13 +54,19 @@ export interface ToastMessage {
 }
 
 // Types for Backend Simulation
-export type ServiceName = 'UserIntf' | 'DPI' | 'APIGW' | 'OrderMatch' | 'TokenizSvc' | 'Pricing' | 'Settlement';
+export type ServiceName = 'UserIntf' | 'DPI' | 'APIGW' | 'OrderMatch' | 'TokenizSvc' | 'Pricing' | 'HederaHashgraph';
+
+export type ScenarioType = 'NORMAL' | 'VOLATILITY_SPIKE' | 'API_GATEWAY_OVERLOAD' | 'DLT_CONGESTION' | 'DPI_OUTAGE' | 'CONTINGENCY';
 
 export interface SystemMetric {
   name: ServiceName;
   status: 'Operational' | 'Degraded' | 'Down';
   value: number;
   unit: string;
+  // Optional scenario-specific data
+  errorRate?: number; // For DPI outage
+  requestsBlocked?: number; // for API GW overload
+  pendingQueue?: number; // for DLT congestion
 }
 
 export type SystemMetrics = Record<ServiceName, SystemMetric>;
@@ -68,11 +77,12 @@ export interface TransactionEvent {
   type: 'KYC' | 'ORDER' | 'MATCH' | 'TOKENIZE' | 'SETTLEMENT' | 'PRICE_UPDATE';
   status: 'SUCCESS' | 'PENDING' | 'FAILED';
   details: string;
+  dltHash?: string;
 }
 
 export interface AnalyticsLog {
   id: string;
   timestamp: string;
-  service: 'Pricing';
+  service: 'Pricing' | 'AIS' | 'Swarm';
   message: string;
 }

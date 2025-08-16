@@ -5,6 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QuantumBond Exchange</title>
+    <script src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -18,20 +19,53 @@
               'brand-secondary': '#1F6FEB',
               'brand-text': '#C9D1D9',
               'brand-text-secondary': '#8B949E',
-              'brand-green': '#238636',
-              'brand-red': '#DA3633',
+              'brand-green': '#3FB950',
+              'brand-red': '#F85149',
               'brand-yellow': '#D29922',
             },
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+            },
+             keyframes: {
+              'toast-in': {
+                from: { transform: 'translateX(100%)', opacity: '0' },
+                to: { transform: 'translateX(0)', opacity: '1' },
+              },
+              'pulse-animation': {
+                '0%': { 'motion-offset': '0%', opacity: '0' },
+                '25%': { opacity: '1' },
+                '75%': { opacity: '1' },
+                '100%': { 'motion-offset': '100%', opacity: '0' },
+              },
+               'glow': {
+                '0%, 100%': { 'box-shadow': '0 0 5px #F85149, 0 0 10px #F85149' },
+                '50%': { 'box-shadow': '0 0 15px #F85149, 0 0 20px #F85149' },
+              },
+              'security-glow': {
+                '0%, 100%': { 'text-shadow': '0 0 3px #58A6FF' },
+                '50%': { 'text-shadow': '0 0 8px #58A6FF' },
+              },
+              'quantum-glow': {
+                '0%, 100%': { filter: 'drop-shadow(0 0 4px rgba(47, 129, 247, 0.7))' },
+                '50%': { filter: 'drop-shadow(0 0 8px rgba(47, 129, 247, 1))' },
+              },
+              'compute-pulse': {
+                'from': { transform: 'scaleY(0.1)', 'background-color': '#1F6FEB' },
+                'to': { transform: 'scaleY(1)', 'background-color': '#58A6FF' }
+              }
+            },
+             animation: {
+              'toast-in': 'toast-in 0.5s forwards',
+              'pulse-animation': 'pulse-animation 3s linear infinite',
+              'glow-red': 'glow 1.5s ease-in-out infinite',
+              'security-glow': 'security-glow 2s ease-in-out infinite',
+              'quantum-glow': 'quantum-glow 2.5s ease-in-out infinite',
             },
           },
         },
       };
     </script>
-     <link rel="preconnect" href="https://fonts.googleapis.com">
-     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       /* Simple styles for rendered markdown from Gemini */
       .gemini-analysis h3 {
@@ -39,6 +73,7 @@
         font-weight: 600;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
+        color: #C9D1D9;
       }
        .gemini-analysis ul {
         list-style-type: disc;
@@ -48,7 +83,7 @@
         margin-bottom: 0.25rem;
       }
        .gemini-analysis strong {
-        color: #C9D1D9;
+        color: #58A6FF;
       }
        /* Toast Notifications */
       .toast-container {
@@ -66,69 +101,57 @@
         padding: 1rem;
         border-radius: 0.5rem;
         color: white;
+        background-color: #161B22;
         min-width: 300px;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         animation: toast-in 0.5s forwards;
+        border: 1px solid #30363D;
       }
-      @keyframes toast-in {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      .toast.success { background-color: #238636; border: 1px solid #30363D; }
-      .toast.error { background-color: #DA3633; border: 1px solid #30363D; }
+      .toast.success { border-left: 4px solid #3FB950; }
+      .toast.error { border-left: 4px solid #F85149; }
 
       /* Architecture Diagram Styles */
-      .arch-grid {
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        grid-template-rows: repeat(10, 1fr);
-        gap: 8px;
-        height: 600px;
+      .arch-container {
+        height: 550px;
         position: relative;
+        overflow: hidden;
       }
-
       .arch-block {
+        position: absolute;
         background-color: #161B22;
         border: 1px solid #30363D;
-        border-radius: 6px;
-        padding: 8px;
+        padding: 8px 12px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
         font-size: 0.8rem;
-        transition: all 0.2s ease-in-out;
+        transition: all 0.5s ease-in-out;
+        z-index: 10;
       }
+      .arch-block .title { font-weight: 600; color: #C9D1D9; }
+      .arch-block .desc { font-size: 0.7rem; color: #8B949E; }
 
-      .arch-block:hover {
-        border-color: #58A6FF;
-        transform: translateY(-2px);
-      }
+      /* Bio-Quantum Mode Styles */
+      .bio-quantum .arch-block { border-radius: 9999px; width: 130px; height: 130px; }
+      .bio-quantum #arch-OrderMatch { width: 160px; height: 160px; border-width: 2px; border-color: #58A6FF; }
+      .bio-quantum #arch-Pricing { animation: quantum-glow 2.5s ease-in-out infinite; }
+      
+      /* Standard Mode Styles */
+      .standard .arch-block { border-radius: 6px; }
+      .standard .arch-block.status-standard { border-color: #8B949E; }
+      .standard #arch-Pricing { animation: none; }
 
-      .arch-block .title {
-        font-weight: 600;
-        color: #C9D1D9;
-      }
 
-      .arch-block .metric {
-        font-family: monospace;
-        font-size: 0.75rem;
-        color: #8B949E;
+      .arch-block.status-down {
+        animation: glow-red 1.5s ease-in-out infinite;
+        border-color: #F85149;
       }
-      .arch-block .metric-value {
-        color: #58A6FF;
-        font-weight: bold;
-      }
-      .arch-block.status-ok .title { color: #238636; }
+      .arch-block .metric-value { color: #58A6FF; font-weight: bold; }
+      .arch-block.status-ok .title { color: #3FB950; }
       .arch-block.status-degraded .title { color: #D29922; }
-      .arch-block.status-down .title { color: #DA3633; }
+      .arch-block.status-down .title { color: #F85149; }
 
       .svg-overlay {
         position: absolute;
@@ -137,41 +160,67 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
+        z-index: 5;
       }
 
       .flow-path {
-        stroke-width: 8;
+        stroke-width: 1.5px;
         fill: none;
         stroke-linecap: round;
         stroke-linejoin: round;
+        transition: d 0.5s ease-in-out, stroke 0.5s ease-in-out;
       }
       
       .flow-pulse {
         fill: white;
         animation: pulse-animation 3s linear infinite;
-        r: 3px;
+        r: 2.5px;
       }
 
-      @keyframes pulse-animation {
-        0% { motion-offset: 0%; opacity: 0; }
-        25% { opacity: 1; }
-        75% { opacity: 1; }
-        100% { motion-offset: 100%; opacity: 0; }
+      .standard .flow-path { stroke-dasharray: none; }
+      .bio-quantum .flow-path { stroke-width: 1px; }
+
+      /* Hardware Acceleration Page Styles */
+      .compute-bar-container {
+        display: flex;
+        gap: 2px;
+        height: 50px;
+        width: 100%;
+        padding: 4px;
+        background-color: #0D1117;
+        border-radius: 4px;
       }
+      .compute-bar {
+        flex-grow: 1;
+        background-color: #30363D;
+        animation: compute-pulse 1s ease-in-out infinite alternate;
+      }
+      .status-dot {
+        height: 8px;
+        width: 8px;
+        background-color: #3FB950;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 5px #3FB950;
+      }
+
     </style>
   <script type="importmap">
 {
   "imports": {
     "@google/genai": "https://esm.sh/@google/genai@^1.14.0",
-    "recharts": "https://esm.sh/recharts@^3.1.2",
-    "react/": "https://esm.sh/react@^19.1.1/",
-    "react": "https://esm.sh/react@^19.1.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/"
+    "recharts": "https://esm.sh/recharts@2.12.7",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/"
   }
 }
 </script>
 </head>
   <body class="bg-brand-bg text-brand-text">
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

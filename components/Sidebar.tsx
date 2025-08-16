@@ -18,7 +18,7 @@ const NavItem: React.FC<{
     onClick={() => navigate({ page })}
     className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors w-full ${
       currentPage === page
-        ? 'bg-brand-primary text-white shadow-lg'
+        ? 'bg-brand-primary text-black font-semibold'
         : 'text-brand-text-secondary hover:bg-brand-surface hover:text-white'
     }`}
   >
@@ -29,7 +29,7 @@ const NavItem: React.FC<{
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, navigate }) => {
   return (
-    <aside className="w-64 bg-brand-surface border-r border-brand-border flex flex-col p-4 flex-shrink-0">
+    <aside className="w-64 bg-brand-bg border-r border-brand-border flex flex-col p-4 flex-shrink-0">
       <div className="flex items-center space-x-3 mb-8 px-2">
         <Icons.logo />
         <h1 className="text-xl font-bold text-white">QuantumBond</h1>
@@ -40,6 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, navigate }) => {
         <NavItem label="Portfolio" page="portfolio" currentPage={currentPage} navigate={navigate} icon={<Icons.portfolio />} />
         <div className="my-2 border-t border-brand-border"></div>
         <NavItem label="System Analytics" page="system-analytics" currentPage={currentPage} navigate={navigate} icon={<Icons.analytics />} />
+        <NavItem label="Integrations & API" page="integrations" currentPage={currentPage} navigate={navigate} icon={<Icons.api />} />
+        <NavItem label="Hardware Acceleration" page="hardware-acceleration" currentPage={currentPage} navigate={navigate} icon={<Icons.chip />} />
       </nav>
       <div className="mt-auto">
         <div className="text-xs text-brand-text-secondary p-2">

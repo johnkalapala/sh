@@ -8,8 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Icons } from './Icons';
 import OrderBook from './OrderBook';
 import TradeModal from './TradeModal';
-import LiveTransactionFeed from './analytics/LiveTransactionFeed';
-import AnalyticsEngineLog from './analytics/AnalyticsEngineLog';
+import BondProcessVisualizer from './BondProcessVisualizer';
 
 
 interface BondDetailProps {
@@ -19,6 +18,7 @@ interface BondDetailProps {
   user: User;
   addToast: (message: string, type?: 'success' | 'error') => void;
   backendState: any;
+  isContingencyMode: boolean;
 }
 
 const generatePriceHistory = (basePrice: number) => {
@@ -35,7 +35,7 @@ const generatePriceHistory = (basePrice: number) => {
     return data;
 };
 
-const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState }) => {
+const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState, isContingencyMode }) => {
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
@@ -72,14 +72,6 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    return backendState.transactions.filter((tx: any) => tx.details.includes(bond.isin) || tx.details.includes(bond.issuer));
-  }, [backendState.transactions, bond.isin, bond.issuer]);
-
-  const filteredLogs = useMemo(() => {
-    return backendState.analyticsLogs.filter((log: any) => log.message.includes(bond.isin));
-  }, [backendState.analyticsLogs, bond.isin]);
-
 
   return (
     <div className="space-y-6">
@@ -90,7 +82,7 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
         </div>
         <button 
             onClick={() => setIsTradeModalOpen(true)}
-            className="bg-brand-primary text-white font-semibold py-2 px-6 rounded-md hover:bg-brand-secondary transition-colors"
+            className="bg-brand-primary text-black font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity"
         >
             Trade
         </button>
@@ -114,7 +106,7 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
                         <AreaChart data={priceHistory}>
                             <defs>
                                 <linearGradient id="colorPriceDetail" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#58A6FF" stopOpacity={0.8}/>
+                                    <stop offset="5%" stopColor="#58A6FF" stopOpacity={0.4}/>
                                     <stop offset="95%" stopColor="#58A6FF" stopOpacity={0}/>
                                 </linearGradient>
                             </defs>
@@ -140,47 +132,46 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
             </div>
           </Card>
           <Card>
-             <h3 className="text-xl font-semibold mb-4">Live Order Book</h3>
+             <h3 className="text-xl font-semibold mb-2">Live Order Book</h3>
+             <p className="text-xs text-center text-brand-text-secondary mb-2">
+                {isContingencyMode ? 'Standard Order Matching' : 'Liquidity optimized by Swarm Intelligence'}
+             </p>
              <OrderBook currentPrice={bond.currentPrice}/>
           </Card>
       </div>
 
-      <Card className="lg:col-span-3">
-        <h3 className="text-xl font-semibold mb-4">Backend Transparency</h3>
+      <Card>
+        <h3 className="text-xl font-semibold mb-2">Backend Transparency</h3>
         <p className="text-sm text-brand-text-secondary mb-4">
-            Follow the real-time processing of transactions and AI analysis for this specific bond. 
-            For a full system overview, visit the <button onClick={() => navigate({page: 'system-analytics'})} className="text-brand-primary hover:underline">System Analytics</button> dashboard.
+            This visualizer shows the real-time status of the backend services involved in processing a trade for this bond. Status changes are influenced by the scenarios in the <button onClick={() => navigate({page: 'system-analytics'})} className="text-brand-primary hover:underline">System Analytics</button> dashboard.
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-                <h4 className="font-semibold mb-2 text-center text-brand-text-secondary">Transaction Monitoring</h4>
-                <LiveTransactionFeed transactions={filteredTransactions} limit={10} />
-            </div>
-            <div>
-                <h4 className="font-semibold mb-2 text-center text-brand-text-secondary">AI Pricing Engine Log</h4>
-                <AnalyticsEngineLog logs={filteredLogs} limit={10} />
-            </div>
-        </div>
+        <BondProcessVisualizer backendState={backendState} />
       </Card>
       
       <Card>
         <div className="flex items-center space-x-2 mb-4">
           <Icons.gemini />
-          <h3 className="text-xl font-semibold">Gemini Issuer Deep Dive</h3>
+          <h3 className="text-xl font-semibold">{isContingencyMode ? 'Standard Issuer Analysis' : 'Gemini Issuer Deep Dive'}</h3>
         </div>
-        {isLoading ? <Spinner /> : deepDiveAnalysis ? (
+        {isContingencyMode ? (
+             <div className="text-center py-8 bg-brand-bg rounded-lg">
+                <Icons.zap className="h-12 w-12 mx-auto text-brand-yellow mb-2" />
+                <h4 className="text-lg font-semibold text-brand-yellow">Feature Unavailable in Standard Mode</h4>
+                <p className="text-brand-text-secondary mt-1">Advanced AI analysis requires a connection to the Gemini API, which is currently bypassed.</p>
+            </div>
+        ) : isLoading ? <Spinner /> : deepDiveAnalysis ? (
             <div className="gemini-analysis" dangerouslySetInnerHTML={{ __html: deepDiveAnalysis }} />
         ) : (
           <div className="text-center py-8">
             <p className="mb-4 text-brand-text-secondary">Get a detailed, AI-generated report on the issuer's profile, financial health, and recent news.</p>
-            <button onClick={handleFetchDeepDive} className="bg-brand-secondary text-white font-semibold py-2 px-4 rounded-md hover:bg-brand-primary transition-colors flex items-center space-x-2 mx-auto">
+            <button onClick={handleFetchDeepDive} className="bg-brand-secondary text-white font-semibold py-2 px-4 rounded-md hover:opacity-90 transition-opacity flex items-center space-x-2 mx-auto">
               {isLoading ? <><Icons.spinner className="animate-spin" /><span>Generating...</span></> : <span>Generate Issuer Report</span>}
             </button>
           </div>
         )}
       </Card>
 
-       {isTradeModalOpen && <TradeModal bond={bond} onClose={() => setIsTradeModalOpen(false)} handleTrade={handleTrade} user={user} addToast={addToast} />}
+       {isTradeModalOpen && <TradeModal bond={bond} onClose={() => setIsTradeModalOpen(false)} handleTrade={handleTrade} user={user} addToast={addToast} isContingencyMode={isContingencyMode} />}
     </div>
   );
 };

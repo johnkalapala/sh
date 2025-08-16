@@ -1,46 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName } from '../types';
+import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType } from '../types';
 import { INITIAL_SYSTEM_METRICS } from '../constants';
 
-const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'Settlement'];
-const TRANSACTION_TYPES: TransactionEvent['type'][] = ['KYC', 'ORDER', 'MATCH', 'TOKENIZE', 'SETTLEMENT', 'PRICE_UPDATE'];
+const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph'];
 
-// A more realistic simulation for backend services
-const simulateServiceMetric = (metric: any) => {
-    const change = (Math.random() - 0.5) * (metric.value * 0.1); // Fluctuate by up to 10%
-    const newValue = metric.value + change;
-    
-    // Simulate occasional status changes
-    let status = 'Operational';
-    if (Math.random() < 0.01) status = 'Degraded';
-    if (Math.random() < 0.001) status = 'Down';
-
-    return { ...metric, value: Math.max(0, newValue), status };
-};
-
-export const useBackendSimulator = (initialBonds: Bond[]) => {
+const useBackendSimulator = (initialBonds: Bond[]) => {
     const [metrics, setMetrics] = useState<SystemMetrics>(INITIAL_SYSTEM_METRICS);
     const [transactions, setTransactions] = useState<TransactionEvent[]>([]);
     const [analyticsLogs, setAnalyticsLogs] = useState<AnalyticsLog[]>([]);
-    const [liveBondData, setLiveBondData] = useState<Record<string, Bond>>(() => {
-        const initialData: Record<string, Bond> = {};
-        initialBonds.forEach(bond => {
-            initialData[bond.id] = bond;
-        });
-        return initialData;
-    });
+    const [liveBondData, setLiveBondData] = useState<Record<string, Bond>>(() => 
+        Object.fromEntries(initialBonds.map(bond => [bond.id, bond]))
+    );
+    const [topMovers, setTopMovers] = useState<Bond[]>([]);
+    const [activeScenario, setActiveScenario] = useState<ScenarioType>('NORMAL');
 
-    const addTransaction = useCallback((tx: Omit<TransactionEvent, 'id' | 'timestamp'>) => {
-        setTransactions(prev => [
-            {
-                id: `tx_${Date.now()}_${Math.random()}`,
-                timestamp: new Date().toISOString(),
-                ...tx,
-            },
-            ...prev
-        ].slice(0, 100)); // Keep last 100 transactions
+    const isContingencyMode = activeScenario === 'CONTINGENCY';
+
+    const generateDltHash = () => `0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+
+    const updateTransactionStatus = useCallback((txId: string, status: TransactionEvent['status'], details: string) => {
+        setTransactions(prev => prev.map(t => {
+            if (t.id === txId) {
+                return {
+                    ...t,
+                    status,
+                    details,
+                    dltHash: status === 'SUCCESS' && t.type === 'SETTLEMENT' ? generateDltHash() : t.dltHash,
+                };
+            }
+            return t;
+        }));
     }, []);
-
+    
     const addAnalyticsLog = useCallback((log: Omit<AnalyticsLog, 'id' | 'timestamp'>) => {
         setAnalyticsLogs(prev => [
              {
@@ -49,49 +40,134 @@ export const useBackendSimulator = (initialBonds: Bond[]) => {
                 ...log,
             },
             ...prev
-        ].slice(0, 100)); // Keep last 100 logs
+        ].slice(0, 100));
     }, []);
 
+    const addTransaction = useCallback((tx: Omit<TransactionEvent, 'id' | 'timestamp'>) => {
+        const newTx: TransactionEvent = {
+            id: `tx_${Date.now()}_${Math.random()}`,
+            timestamp: new Date().toISOString(),
+            ...tx,
+        };
+        setTransactions(prev => [newTx, ...prev].slice(0, 200));
+
+        let settlementDelay = 1500;
+        if (activeScenario === 'DLT_CONGESTION') settlementDelay = 8000 + Math.random() * 2000;
+        if (activeScenario === 'API_GATEWAY_OVERLOAD') settlementDelay = 3000 + Math.random() * 1000;
+        if (isContingencyMode) settlementDelay = 2500;
+
+        if (newTx.type === 'KYC') {
+            let kycDelay = metrics.DPI.status === 'Operational' ? 2000 + Math.random() * 1000 : 10000 + Math.random() * 5000;
+             setTimeout(() => {
+                const finalStatus: TransactionEvent['status'] = metrics.DPI.status === 'Operational' ? 'SUCCESS' : 'FAILED';
+                const finalDetails = newTx.details.replace('submitted', finalStatus === 'SUCCESS' ? 'verified successfully' : 'failed due to DPI service error');
+                updateTransactionStatus(newTx.id, finalStatus, finalDetails);
+            }, kycDelay);
+        }
+
+        if (newTx.type === 'ORDER' || newTx.type === 'MATCH') {
+            setTimeout(() => {
+                const settlementTx: Omit<TransactionEvent, 'id' | 'timestamp'> = {
+                    type: 'SETTLEMENT',
+                    status: 'PENDING',
+                    details: newTx.details.replace('order submitted', 'settlement pending'),
+                };
+                const finalSettlementTx: TransactionEvent = { ...settlementTx, id: `tx_${Date.now()}_${Math.random()}`, timestamp: new Date().toISOString() };
+                setTransactions(prev => [finalSettlementTx, ...prev].slice(0, 200));
+
+                setTimeout(() => {
+                    const finalStatus: TransactionEvent['status'] = Math.random() < 0.95 ? 'SUCCESS' : 'FAILED';
+                    const dltProvider = isContingencyMode ? 'Standard Clearing House' : 'Hashgraph DLT';
+                    const finalDetails = finalSettlementTx.details.replace('pending', finalStatus === 'SUCCESS' ? `settled via ${dltProvider}` : 'failed');
+                    updateTransactionStatus(finalSettlementTx.id, finalStatus, finalDetails);
+                }, settlementDelay);
+            }, 500);
+        }
+        return newTx;
+    }, [activeScenario, isContingencyMode, updateTransactionStatus, metrics.DPI.status]);
+
+    const runScenario = (scenario: ScenarioType) => {
+        setMetrics(INITIAL_SYSTEM_METRICS);
+        setActiveScenario(scenario);
+    };
+
     useEffect(() => {
+        const sortedByChange = [...initialBonds].sort((a, b) => Math.abs(b.dayChange) - Math.abs(a.dayChange));
+        setTopMovers(sortedByChange.slice(0, 10));
+        
         const interval = setInterval(() => {
-            // Update metrics
-            setMetrics(prevMetrics => {
-                const newMetrics: any = {};
-                for (const key of SERVICE_NAMES) {
-                    newMetrics[key] = simulateServiceMetric(prevMetrics[key]);
+            const newMetrics: SystemMetrics = JSON.parse(JSON.stringify(INITIAL_SYSTEM_METRICS));
+            let transactionChance = 0.5;
+
+            switch(activeScenario) {
+                case 'VOLATILITY_SPIKE':
+                    transactionChance = 0.9;
+                    newMetrics.OrderMatch.value = 7500 + Math.random() * 2000;
+                    if (Math.random() < 0.3) addAnalyticsLog({ service: 'Swarm', message: 'Liquidity Swarm activated. Re-routing order flow.' });
+                    setLiveBondData(prevData => {
+                        const newData = { ...prevData };
+                        for (let i = 0; i < 200; i++) {
+                            const bond = initialBonds[Math.floor(Math.random() * initialBonds.length)];
+                            const change = (Math.random() - 0.5) * 0.25;
+                            const newPrice = Math.max(80, (newData[bond.id]?.currentPrice || bond.currentPrice) * (1 + change / 100));
+                            if(newData[bond.id]) newData[bond.id] = { ...newData[bond.id], currentPrice: newPrice };
+                        }
+                        return newData;
+                    });
+                    break;
+                case 'API_GATEWAY_OVERLOAD':
+                    newMetrics.APIGW.status = Math.random() < 0.2 ? 'Down' : 'Degraded';
+                    newMetrics.APIGW.value = 500 + Math.random() * 300;
+                    newMetrics.UserIntf.value = 300 + Math.random() * 200;
+                    newMetrics.APIGW.requestsBlocked = Math.floor(newMetrics.APIGW.value * (0.8 + Math.random() * 0.15));
+                    if (Math.random() < 0.5) addAnalyticsLog({ service: 'AIS', message: `Anomalous traffic detected. Blocking ${Math.floor(Math.random()*20)+5} IPs.` });
+                    break;
+                case 'DLT_CONGESTION':
+                    newMetrics.HederaHashgraph.status = 'Degraded';
+                    newMetrics.HederaHashgraph.value = 8 + Math.random() * 4;
+                    newMetrics.HederaHashgraph.pendingQueue = (newMetrics.HederaHashgraph.pendingQueue || 0) + Math.floor(Math.random() * 150);
+                    break;
+                case 'DPI_OUTAGE':
+                    newMetrics.DPI.status = 'Down';
+                    newMetrics.DPI.value = 10000 + Math.random() * 2000;
+                    newMetrics.DPI.errorRate = 95 + Math.random() * 5;
+                    if (Math.random() < 0.3) addTransaction({ type: 'KYC', status: 'FAILED', details: 'KYC verification failed: DPI service unreachable.' });
+                    break;
+                case 'CONTINGENCY':
+                    newMetrics.Pricing.status = 'Down';
+                    newMetrics.Pricing.value = 0; // 0% cache hit
+                    newMetrics.OrderMatch.value = 800 + Math.random() * 200; // Slower standard engine
+                    newMetrics.HederaHashgraph.status = 'Down';
+                    newMetrics.HederaHashgraph.value = 2.5;
+                    break;
+                case 'NORMAL':
+                     if (newMetrics.HederaHashgraph.pendingQueue && newMetrics.HederaHashgraph.pendingQueue > 0) {
+                        newMetrics.HederaHashgraph.pendingQueue = Math.max(0, newMetrics.HederaHashgraph.pendingQueue - 500);
+                     }
+                    break;
+            }
+
+            SERVICE_NAMES.forEach(name => {
+                if (newMetrics[name].status === 'Operational' && activeScenario !== 'CONTINGENCY') {
+                    newMetrics[name].value *= (1 + (Math.random() - 0.5) * 0.1);
                 }
-                // Simulate total volume for settlement
-                newMetrics.Settlement.value = newMetrics.Settlement.value + Math.random() * 10000;
-                return newMetrics as SystemMetrics;
             });
-            
-            // Simulate a new transaction
-            if (Math.random() < 0.7) { // 70% chance to add a new transaction each tick
-                const type = TRANSACTION_TYPES[Math.floor(Math.random() * TRANSACTION_TYPES.length)];
-                const randomBond = initialBonds[Math.floor(Math.random() * initialBonds.length)];
+            setMetrics(newMetrics);
+
+            if (Math.random() < transactionChance) {
                 addTransaction({
-                    type,
-                    status: Math.random() < 0.95 ? 'SUCCESS' : 'FAILED',
-                    details: `[${randomBond.isin}] ${type} processed for ${randomBond.issuer}`
+                    type: 'MATCH',
+                    status: 'SUCCESS',
+                    details: `[${initialBonds[Math.floor(Math.random() * initialBonds.length)].isin}] order matched`
                 });
             }
-
-            // Simulate a new analytics log
-            if (Math.random() < 0.5) {
-                 const randomBond = initialBonds[Math.floor(Math.random() * initialBonds.length)];
-                 const isCacheHit = Math.random() < 0.85; // 85% cache hit rate
-                 addAnalyticsLog({
-                     service: 'Pricing',
-                     message: isCacheHit 
-                        ? `[Cache HIT] Fair value retrieved for ${randomBond.isin}`
-                        : `[Cache MISS] Recalculating fair value for ${randomBond.isin} from market data.`
-                 });
-            }
             
-        }, 1500); // Main tick interval
+        }, 1800);
 
         return () => clearInterval(interval);
-    }, [initialBonds, addTransaction, addAnalyticsLog]);
+    }, [initialBonds, addTransaction, addAnalyticsLog, activeScenario]);
 
-    return { metrics, transactions, analyticsLogs, liveBondData };
+    return { metrics, transactions, analyticsLogs, liveBondData, topMovers, runScenario, activeScenario, isContingencyMode, addTransaction };
 };
+
+export { useBackendSimulator };

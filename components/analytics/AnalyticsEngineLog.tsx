@@ -6,6 +6,19 @@ interface AnalyticsEngineLogProps {
   limit?: number;
 }
 
+const getMessageColor = (log: AnalyticsLog) => {
+    switch (log.service) {
+        case 'Pricing':
+            return log.message.includes('Cache HIT') ? 'text-green-400' : 'text-yellow-400';
+        case 'AIS':
+            return 'text-red-400';
+        case 'Swarm':
+            return 'text-blue-400';
+        default:
+            return 'text-gray-400';
+    }
+};
+
 const AnalyticsEngineLog: React.FC<AnalyticsEngineLogProps> = ({ logs, limit }) => {
   const displayedLogs = limit ? logs.slice(0, limit) : logs;
   return (
@@ -15,9 +28,9 @@ const AnalyticsEngineLog: React.FC<AnalyticsEngineLogProps> = ({ logs, limit }) 
           <span className="text-cyan-400">
             {new Date(log.timestamp).toLocaleTimeString()}
           </span>
-          <span className="text-brand-text-secondary mx-1">-</span>
-          <span className={log.message.includes('Cache HIT') ? 'text-green-400' : log.message.includes('Cache MISS') ? 'text-yellow-400' : 'text-gray-400'}>
-            {log.message}
+           <span className="text-brand-text-secondary mx-1">-</span>
+          <span className={`${getMessageColor(log)}`}>
+            [{log.service}] {log.message}
           </span>
         </div>
       )): (

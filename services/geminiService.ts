@@ -9,8 +9,8 @@ const MOCK_API_DELAY = 1500;
 
 const createGeneralAnalysisPrompt = (): string => {
   return `
-  Provide a concise market analysis for the Indian corporate bond market today. Cover the following points:
-  1.  **Overall Market Sentiment:** (e.g., Bullish, Bearish, Neutral) and the primary reasons.
+  Provide a concise market analysis for the Indian corporate bond market today from an Econophysics perspective. Cover the following points:
+  1.  **Overall Market Sentiment:** (e.g., Bullish, Bearish, Neutral) and the primary reasons based on agent behavior.
   2.  **Key Economic Drivers:** Analyze the impact of recent RBI announcements, inflation data, and global economic trends (like US Fed rates).
   3.  **Sector Spotlight:** Highlight the performance and outlook for two key sectors (e.g., Banking, Infrastructure, Renewables).
   4.  **Yield Curve Analysis:** Briefly describe the current state of the yield curve (e.g., steepening, flattening) and its implications.
@@ -41,11 +41,11 @@ const createBondSpecificAnalysisPrompt = (bond: Bond): string => {
   - Maturity: ${bond.maturityDate}
   - Credit Rating: ${bond.creditRating}
   - Current Market Price: ₹${bond.currentPrice}
-  - AI-Powered Fair Value Estimate: ₹${bond.aiFairValue}
+  - Quantum-Enhanced Fair Value Estimate: ₹${bond.aiFairValue}
 
   Based on this data, please provide:
   1.  **Credit Quality Assessment:** A brief analysis of the issuer's creditworthiness and the significance of its ${bond.creditRating} rating.
-  2.  **Valuation Analysis:** Compare the current market price to the AI fair value. Is it potentially overvalued, undervalued, or fairly priced? Explain why.
+  2.  **Valuation Analysis:** Compare the current market price to the Quantum-Enhanced fair value. Is it potentially overvalued, undervalued, or fairly priced? Explain why.
   3.  **Risk Profile:** What are the primary risks associated with this bond (e.g., interest rate risk, credit risk, liquidity risk)?
   4.  **Investment Thesis Summary:** A concluding paragraph on whether this bond appears to be a suitable investment for a retail investor with a moderate risk appetite.
 
@@ -78,12 +78,23 @@ const createDeepDiveAnalysisPrompt = (bond: Bond): string => {
   `;
 };
 
+const createMarketNewsAnalysisPrompt = (): string => {
+    return `
+    Analyze today's top financial news relevant to the Indian bond market. Provide a summary of 3 key stories. For each story:
+    1.  **Headline:** A clear, concise headline.
+    2.  **Summary:** A one-sentence summary of the news.
+    3.  **Impact Analysis:** A brief analysis of the potential impact (Positive, Negative, or Neutral) on specific sectors (e.g., Banking, Infra, Tech, PSUs).
+
+    Format the response as well-structured markdown, using headings and bullet points.
+    `;
+};
+
 
 const mockGeneralAnalysisResponse = `
 ### Indian Corporate Bond Market Analysis
 
 **1. Overall Market Sentiment: Cautiously Optimistic**
-The market is currently exhibiting a cautiously optimistic sentiment. While underlying economic fundamentals remain strong, participants are watchful of global macroeconomic cues and domestic inflation data.
+The market is currently exhibiting a cautiously optimistic sentiment. While underlying economic fundamentals remain strong, participants are watchful of global macroeconomic cues and domestic inflation data. Agent-based models suggest a low probability of herd-like selling behavior.
 
 **2. Key Economic Drivers:**
 *   **RBI Monetary Policy:** The Reserve Bank of India's recent stance on holding policy rates steady has provided a degree of stability. Future rate decisions will be a key market driver.
@@ -109,14 +120,14 @@ const mockBondSpecificAnalysisResponse = (bond: Bond) => `
 ${bond.issuer} holds a **${bond.creditRating}** rating, which signifies a very strong capacity to meet its financial commitments. Issuers with this rating are considered high-quality and carry a low credit risk, making this a relatively safe investment from a default perspective.
 
 **2. Valuation Analysis:**
-The bond is currently trading at **₹${bond.currentPrice}**, while our AI-powered model estimates its fair value at **₹${bond.aiFairValue}**. This suggests the bond may be **slightly undervalued** in the current market. The modest discount could be attributed to general market liquidity conditions rather than issuer-specific concerns, presenting a potential entry point for investors.
+The bond is currently trading at **₹${bond.currentPrice}**, while our Quantum-Enhanced model estimates its fair value at **₹${bond.aiFairValue}**. This suggests the bond may be **slightly undervalued** in the current market. This valuation, derived from quantum statistical models, accounts for non-classical market behaviors, presenting a potential entry point for investors.
 
 **3. Risk Profile:**
 *   **Interest Rate Risk:** As with any fixed-income instrument, if the RBI were to raise interest rates, the price of this bond would likely decrease.
 *   **Liquidity Risk:** While issued by a major corporation, this specific bond may have lower trading volumes compared to government securities, which could make it harder to sell instantly without a price concession.
 
 **4. Investment Thesis Summary:**
-For a retail investor with a moderate risk appetite, this bond presents a compelling case. It offers a relatively high coupon from a top-rated issuer and appears to be trading at a slight discount to its fair value. It is a solid choice for investors seeking stable income with low default risk.
+For a retail investor with a moderate risk appetite, this bond presents a compelling case. It offers a relatively high coupon from a top-rated issuer and appears to be trading at a slight discount to its quantum-derived fair value. It is a solid choice for investors seeking stable income with low default risk.
 `;
 
 const mockDeepDiveAnalysisResponse = (bond: Bond) => `
@@ -138,7 +149,107 @@ const mockDeepDiveAnalysisResponse = (bond: Bond) => `
 - **Impact Analysis:** The significant investment in green energy signals a forward-looking strategy that aligns with global trends, potentially attracting ESG-focused investors. The strong performance of its retail division continues to provide a stable and growing revenue stream, further strengthening its credit profile and making its bonds a secure investment.
 `;
 
+const mockMarketNewsResponse = `
+### RBI Holds Repo Rate Steady at 6.5%
+*   **Summary:** The Monetary Policy Committee (MPC) voted to keep the policy repo rate unchanged, citing persistent inflationary pressures.
+*   **Impact Analysis (Neutral):** This was largely expected by the market. Provides short-term stability for existing bond yields. Positive for **Banking** sector net interest margins, but continued high rates may temper credit growth.
+
+### Government Announces Rs 10 Lakh Crore Infrastructure Push
+*   **Summary:** The Union Budget has allocated a record amount towards infrastructure projects, focusing on highways and railways.
+*   **Impact Analysis (Positive):** Highly positive for **Infrastructure** and capital goods sectors. Expect increased bond issuance from entities like NHAI and IRFC, which will likely be well-received by the market.
+
+### Global Tech Slowdown Impacts IT Sector Outlook
+*   **Summary:** Major global clients are reportedly cutting IT spending, leading to a revised, more cautious growth outlook for Indian IT firms.
+*   **Impact Analysis (Negative):** Negative for the **IT/Technology** sector. While major firms have strong balance sheets, their credit outlook may be slightly tempered, potentially leading to wider spreads on any new bond issuances.
+`;
+
 const mockEntropyResponse = `**72/100 (Stable Liquidity)** - The market shows healthy trading activity and balanced predictability, indicating stable conditions.`;
+
+const mockPortfolioAnalysisResponse = (portfolio: any[], balance: number, riskProfile: string, objective: string) => {
+  const totalHoldings = portfolio.reduce((acc, bond) => acc + bond.quantity * bond.currentPrice, 0);
+  const totalPortfolio = totalHoldings + balance;
+  const cashPercentage = ((balance / totalPortfolio) * 100).toFixed(1);
+  const topHolding = portfolio.length > 0 ? portfolio.sort((a,b) => (b.quantity * b.currentPrice) - (a.quantity * a.currentPrice))[0] : null;
+
+  let objectiveText = "";
+  switch(objective) {
+    case 'esg':
+      objectiveText = "To maximize your portfolio's ESG (Environmental, Social, and Governance) score while maintaining a balanced risk profile, our quantum annealing model suggests...";
+      break;
+    case 'yield':
+       objectiveText = "To maximize yield for your aggressive profile, our quantum annealing model recommends focusing on...";
+       break;
+    default:
+       objectiveText = "To align more closely with a balanced risk profile, our quantum annealing model suggests the following adjustments...";
+  }
+
+  return `
+### Quantum Portfolio Analysis for a ${riskProfile.charAt(0).toUpperCase() + riskProfile.slice(1)} Profile
+
+**1. Optimization Model: Quantum Annealing**
+This analysis uses a hybrid quantum-classical annealing model to solve a multi-objective optimization problem, balancing risk, return, and your selected goal of **'${objective.toUpperCase()}'**.
+
+**2. Current Portfolio Assessment:**
+Your current portfolio value is **₹${totalPortfolio.toLocaleString('en-IN', {maximumFractionDigits: 0})}**, with **${cashPercentage}%** held in cash. The allocation is moderately diversified, with the largest holding in **${topHolding ? topHolding.name : 'N/A'}**.
+
+**3. Suggested Re-allocation Strategy:**
+${objectiveText}
+*   **Increase Allocation:** Focus on high-quality bonds from the **Renewable Energy** and **Infrastructure** sectors, which often carry strong ESG ratings.
+*   **Rebalance Sector Weighting:** Your portfolio seems concentrated in the financial sector. Consider adding exposure to infrastructure or industrial bonds for better diversification and to meet your objective.
+*   **Cash Deployment:** The **${cashPercentage}%** cash position is slightly high for an aggressive profile. Consider deploying this cash into undervalued, high-ESG bonds identified by our models.
+
+**4. Rationale:**
+This strategy aims to align your assets with your stated risk tolerance and investment objectives. By leveraging quantum optimization to navigate complex trade-offs, you can enhance long-term returns while building a portfolio that reflects your values.
+  `;
+};
+
+const mockQuantumSimulationResponse = (algorithm: string) => {
+    switch (algorithm) {
+        case 'annealing':
+            return `
+### Simulation: Quantum Annealing for Portfolio Optimization
+**Objective:** Maximize risk-adjusted returns for a portfolio of 1,500 corporate bonds with complex covariance constraints.
+
+**Result:**
+The quantum annealer explored a solution space of over 10^450 possibilities and converged on an optimal asset allocation in **198 milliseconds**. A classical brute-force approach would be computationally infeasible.
+
+- **Identified Opportunity:** The model suggests a 12% allocation to specific, undervalued AA-rated bonds in the renewable energy sector, which were previously overlooked by classical models due to non-linear risk correlations.
+- **Projected Alpha:** This optimized portfolio demonstrates a projected alpha of **+1.25%** over the benchmark index, with a 15% reduction in overall portfolio volatility (VaR).
+
+**Conclusion:** Quantum Annealing provides a significant advantage in solving complex, multi-variable optimization problems inherent in modern portfolio management.
+            `;
+        case 'vqe':
+            return `
+### Simulation: Variational Quantum Eigensolver (VQE) for Bond Pricing
+**Objective:** Calculate the fair value of a complex, callable corporate bond with embedded options, a problem difficult for classical Monte Carlo simulations.
+
+**Result:**
+The VQE algorithm modeled the bond's payoff structure as a Hamiltonian and found its ground state energy, corresponding to the precise fair value.
+
+- **Calculated Fair Value:** ₹103.452
+- **Classical Model Value:** ₹102.980
+- **Time to Converge:** 8.2 seconds on a simulated 54-qubit quantum processor.
+
+**Analysis:** The quantum model more accurately priced the bond's embedded optionality, revealing it was undervalued by the classical model. This precision allows for more effective arbitrage and hedging strategies. The simulation highlights the potential of quantum finance for pricing complex derivatives.
+            `;
+        case 'qmc':
+            return `
+### Simulation: Quantum Amplitude Estimation (QAE) for Risk Analysis
+**Objective:** Perform a market risk analysis (Value at Risk) on the entire bond market, requiring a quadratic speedup over classical Monte Carlo methods.
+
+**Result:**
+The QAE algorithm achieved a high-confidence VaR estimate with significantly fewer samples than its classical counterpart.
+
+- **99% VaR Estimate:** ₹-1.25 Crores (on a notional ₹100 Cr portfolio)
+- **Quantum Samples Required:** 8,192
+- **Classical Samples Required (for same accuracy):** ~67,000,000
+
+**Conclusion:** QAE demonstrates a revolutionary improvement in the efficiency of risk modeling. This allows for near real-time risk assessments during high-volatility events, a task that is currently an overnight batch process in most financial institutions.
+            `;
+        default:
+            return `### Select a simulation to begin.`;
+    }
+}
 
 // Mock function to simulate a Gemini API call
 export const generateGeminiAnalysis = (type: 'general' | 'bond' | 'entropy', bond?: Bond): Promise<string> => {
@@ -163,4 +274,31 @@ export const generateBondDeepDiveAnalysis = (bond: Bond): Promise<string> => {
           resolve(mockDeepDiveAnalysisResponse(bond));
       }, MOCK_API_DELAY + 500); // make it slightly slower
   });
+};
+
+export const generateMarketNewsAnalysis = (): Promise<string> => {
+    console.log("Generating Gemini Market News Analysis...");
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(mockMarketNewsResponse);
+        }, MOCK_API_DELAY);
+    });
+};
+
+export const generatePortfolioOptimizationAnalysis = (portfolio: any[], balance: number, riskProfile: string, objective: string): Promise<string> => {
+  console.log("Generating Gemini Portfolio Optimization Analysis...");
+  return new Promise(resolve => {
+      setTimeout(() => {
+          resolve(mockPortfolioAnalysisResponse(portfolio, balance, riskProfile, objective));
+      }, MOCK_API_DELAY + 1000); // make it a bit slower
+  });
+};
+
+export const generateQuantumSimulationAnalysis = (algorithm: string): Promise<string> => {
+    console.log(`Generating Gemini Quantum Simulation for: ${algorithm}`);
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(mockQuantumSimulationResponse(algorithm));
+        }, 2500);
+    });
 };
