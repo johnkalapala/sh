@@ -5,7 +5,7 @@ import BondCard from './BondCard';
 import TradeModal from './TradeModal';
 import { Icons } from './Icons';
 import Card from './shared/Card';
-import Spinner from './shared/Spinner';
+import Spinner from './components/shared/Spinner';
 
 interface MarketplaceProps {
   navigate: (view: ViewState) => void;
@@ -279,7 +279,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({
         </div>
       )}
       <div className="text-right text-sm text-brand-text-secondary pr-2">
-        Showing page with {bonds.length > 0 ? bonds.length : '0'} bonds...
+        Showing {bonds.length > 0 ? bonds.length : '0'} of {pagination.totalItems.toLocaleString()} bonds
       </div>
 
       {renderContent()}

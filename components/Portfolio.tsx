@@ -3,7 +3,7 @@ import Card from './shared/Card';
 import { PortfolioHolding, ViewState, User, Bond } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Icons } from './Icons';
-import { generatePortfolioOptimizationAnalysis } from '../services/geminiService';
+import backendApiService from '../services/backendApiService';
 import WalletAndFunds from './WalletAndFunds';
 
 const COLORS = ['#f59e0b', '#d97706', '#22c55e', '#eab308', '#a855f7', '#ef4444', '#3b82f6', '#a1a1aa'];
@@ -63,10 +63,10 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, on
         ];
         
         try {
-            const analysisResult = await generatePortfolioOptimizationAnalysis(portfolioBonds, user.walletBalance, riskProfile, objective);
+            const analysisResult = await backendApiService.getPortfolioAnalysis();
             setOptimizationAnalysis(analysisResult);
         } catch (error) {
-            console.error("Failed to fetch Gemini analysis:", error);
+            console.error("Failed to fetch backend analysis:", error);
             setOptimizationAnalysis("<p>Error: Could not generate portfolio analysis at this time.</p>");
         } finally {
             setOptimizedData(newOptimizedData);
@@ -130,72 +130,63 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, on
             
             <Card>
                 <div className="flex items-center space-x-2 mb-4">
-                    <Icons.gemini />
+                    <Icons.brainCircuit />
                     <h3 className="text-2xl font-bold">
-                        {isContingencyMode ? 'Standard Portfolio Analysis' : 'Quantum Annealing Optimizer'}
+                        Portfolio Optimizer
                     </h3>
                 </div>
-                {isContingencyMode ? (
-                     <div className="text-center py-8 bg-brand-bg rounded-lg">
-                        <Icons.zap className="h-12 w-12 mx-auto text-brand-yellow mb-2" />
-                        <h4 className="text-lg font-semibold text-brand-yellow">Feature Unavailable in Standard Mode</h4>
-                        <p className="text-brand-text-secondary mt-1">The Quantum Optimizer requires a connection to the QPU, which is currently offline.<br/>Standard portfolio analysis tools are available.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <div>
+                        <label className="block text-brand-text-secondary mb-2">Select Risk Profile</label>
+                        <select
+                            value={riskProfile}
+                            onChange={(e) => setRiskProfile(e.target.value)}
+                            className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
+                        >
+                            <option value="conservative">Conservative</option>
+                            <option value="balanced">Balanced</option>
+                            <option value="aggressive">Aggressive</option>
+                        </select>
                     </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                            <div>
-                                <label className="block text-brand-text-secondary mb-2">Select Risk Profile</label>
-                                <select
-                                    value={riskProfile}
-                                    onChange={(e) => setRiskProfile(e.target.value)}
-                                    className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
-                                >
-                                    <option value="conservative">Conservative</option>
-                                    <option value="balanced">Balanced</option>
-                                    <option value="aggressive">Aggressive</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-brand-text-secondary mb-2">Select Primary Objective</label>
-                                <select
-                                    value={objective}
-                                    onChange={(e) => setObjective(e.target.value)}
-                                    className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
-                                >
-                                    <option value="balanced">Balanced Growth</option>
-                                    <option value="yield">Maximize Yield</option>
-                                    <option value="esg">High ESG Score</option>
-                                </select>
-                            </div>
-                            <button onClick={handleOptimize} disabled={isOptimizing} className="bg-brand-primary text-black py-2 px-4 rounded-md font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
-                                {isOptimizing ? <><Icons.spinner className="animate-spin" /><span>Optimizing...</span></> : <span>Run Optimizer</span>}
-                            </button>
+                    <div>
+                        <label className="block text-brand-text-secondary mb-2">Select Primary Objective</label>
+                        <select
+                            value={objective}
+                            onChange={(e) => setObjective(e.target.value)}
+                            className="w-full bg-brand-bg border border-brand-border rounded-md p-2"
+                        >
+                            <option value="balanced">Balanced Growth</option>
+                            <option value="yield">Maximize Yield</option>
+                            <option value="esg">High ESG Score</option>
+                        </select>
+                    </div>
+                    <button onClick={handleOptimize} disabled={isOptimizing} className="bg-brand-primary text-black py-2 px-4 rounded-md font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+                        {isOptimizing ? <><Icons.spinner className="animate-spin" /><span>Optimizing...</span></> : <span>Run Optimizer</span>}
+                    </button>
+                </div>
+                {optimizedData && (
+                    <div className="mt-8 pt-6 border-t border-brand-border grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div>
+                            <h4 className="text-xl font-semibold mb-4 text-center">Suggested Allocation</h4>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie data={optimizedData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={(entry) => `${entry.name} ${entry.value}%`}>
+                                        {optimizedData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
-                        {optimizedData && (
-                            <div className="mt-8 pt-6 border-t border-brand-border grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                                <div>
-                                    <h4 className="text-xl font-semibold mb-4 text-center">Suggested Allocation</h4>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <PieChart>
-                                            <Pie data={optimizedData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={(entry) => `${entry.name} ${entry.value}%`}>
-                                                {optimizedData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                {optimizationAnalysis && (
-                                    <div className="h-full">
-                                        <h4 className="text-xl font-semibold mb-4 text-center">Gemini Analysis & Recommendations</h4>
-                                        <div className="gemini-analysis bg-brand-bg p-4 rounded-lg text-brand-text-secondary h-[300px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: optimizationAnalysis }} />
-                                    </div>
-                                )}
+                        {optimizationAnalysis && (
+                            <div className="h-full">
+                                <h4 className="text-xl font-semibold mb-4 text-center">Backend Analysis & Recommendations</h4>
+                                <div className="gemini-analysis bg-brand-bg p-4 rounded-lg text-brand-text-secondary h-[300px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: optimizationAnalysis }} />
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
             </Card>
         </div>

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
-import { generateGeminiAnalysis, generateMarketNewsAnalysis } from '../services/geminiService';
+import backendApiService from '../services/backendApiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Icons } from './Icons';
 import { ViewState, Bond, TransactionEvent, User } from '../types';
@@ -53,10 +54,12 @@ interface DashboardProps {
   backendState: any;
   user: User;
   onOpenAddFunds: () => void;
+  isLoading: boolean;
+  pagination: { totalItems: number };
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onOpenAddFunds }) => {
+const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onOpenAddFunds, isLoading, pagination }) => {
   const [analysis, setAnalysis] = useState<string>('');
   const [liquidityScore, setLiquidityScore] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(true);
@@ -68,21 +71,23 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onO
       setIsLoadingAnalysis(true);
       try {
         const [generalResult, liquidityResult] = await Promise.all([
-          generateGeminiAnalysis('general'),
-          generateGeminiAnalysis('liquidity')
+          backendApiService.getMarketNews(),
+          backendApiService.getLiquidityScore()
         ]);
         setAnalysis(generalResult);
         setLiquidityScore(liquidityResult);
       } catch (error) {
-        console.error("Failed to fetch Gemini analysis:", error);
+        console.error("Failed to fetch backend analysis:", error);
         setAnalysis("Failed to load market analysis. Please try again later.");
         setLiquidityScore("N/A");
       } finally {
         setIsLoadingAnalysis(false);
       }
     };
-    fetchAllAnalyses();
-  }, []);
+    if (bonds.length > 0) {
+        fetchAllAnalyses();
+    }
+  }, [bonds.length]);
   
   const [score, text] = useMemo(() => {
     if (!liquidityScore) return ['N/A', 'Loading...'];
@@ -108,18 +113,22 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onO
         <Card>
           <div className="flex items-center space-x-3 mb-2">
              <Icons.volume />
-             <h3 className="text-lg font-semibold text-brand-text-secondary">Tokenized Volume (Cr)</h3>
+             <h3 className="text-lg font-semibold text-brand-text-secondary">Total Volume (Cr)</h3>
           </div>
-          <p className="text-3xl font-bold text-white">₹{(totalVolume / 10000000).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
-          <p className="text-sm text-brand-green">+2.5% vs yesterday</p>
+          {isLoading ? <Spinner /> : <>
+            <p className="text-3xl font-bold text-white">₹{(totalVolume / 10000000).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            <p className="text-sm text-brand-green">+2.5% vs yesterday</p>
+          </>}
         </Card>
         <Card>
           <div className="flex items-center space-x-3 mb-2">
             <Icons.issues />
             <h3 className="text-lg font-semibold text-brand-text-secondary">Active Issues</h3>
           </div>
-          <p className="text-3xl font-bold text-white">{bonds.length.toLocaleString()}</p>
-           <p className="text-sm text-brand-text-secondary">Sourced live from AI</p>
+          {isLoading ? <Spinner /> : <>
+            <p className="text-3xl font-bold text-white">{(pagination?.totalItems || 0).toLocaleString()}</p>
+            <p className="text-sm text-brand-text-secondary">Sourced from Backend</p>
+          </>}
         </Card>
          <Card className="md:col-span-2">
             <WalletAndFunds user={user} onAddFunds={onOpenAddFunds} />
@@ -147,7 +156,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onO
                   <Icons.liquidity />
                   <h3 className="text-xl font-semibold">Liquidity Score</h3>
                 </div>
-                {isLoadingAnalysis ? <Spinner /> : (
+                {isLoadingAnalysis || isLoading ? <Spinner /> : (
                   <>
                     <p className="text-4xl font-bold text-white text-center py-2">{score}</p>
                     <p className={`text-sm text-center ${liquidityNumericValue > 70 ? 'text-brand-green' : 'text-brand-yellow'}`}>{text}</p>
@@ -156,17 +165,17 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onO
             </Card>
             <Card>
                 <h3 className="text-xl font-semibold mb-4">Top Movers (24h)</h3>
-                <TopMovers movers={topMovers} navigate={navigate} />
+                {isLoading ? <Spinner /> : <TopMovers movers={topMovers} navigate={navigate} />}
             </Card>
         </div>
       </div>
        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <Card className="lg:col-span-3">
             <div className="flex items-center space-x-2 mb-4">
-              <Icons.gemini />
-              <h3 className="text-xl font-semibold">Quantum-Bio Analyst</h3>
+              <Icons.brainCircuit />
+              <h3 className="text-xl font-semibold">Market Analyst</h3>
             </div>
-            {isLoadingAnalysis ? <Spinner /> : (
+            {isLoadingAnalysis || isLoading ? <Spinner /> : (
               <div className="gemini-analysis text-brand-text-secondary" dangerouslySetInnerHTML={{ __html: analysis }} />
             )}
           </Card>

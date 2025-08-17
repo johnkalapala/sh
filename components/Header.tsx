@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Page, User, ScenarioType } from '../types';
 import { Icons } from './Icons';
@@ -11,6 +10,8 @@ interface HeaderProps {
   activeScenario: ScenarioType;
   isContingencyMode: boolean;
   isCircuitBreakerTripped: boolean;
+  onUploadData: () => void;
+  isCustomDataLoaded: boolean;
 }
 
 const pageTitles: Record<Page, string> = {
@@ -57,7 +58,7 @@ const UpiAutopayIndicator: React.FC<{ status: User['upiAutopay']['status'] }> = 
 }
 
 
-const Header: React.FC<HeaderProps> = ({ currentPage, user, onDisconnect, activeScenario, isContingencyMode, isCircuitBreakerTripped }) => {
+const Header: React.FC<HeaderProps> = ({ currentPage, user, onDisconnect, activeScenario, isContingencyMode, isCircuitBreakerTripped, onUploadData, isCustomDataLoaded }) => {
 
   const formatAddress = (address: string) => `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
 
@@ -68,6 +69,14 @@ const Header: React.FC<HeaderProps> = ({ currentPage, user, onDisconnect, active
           <h1 className="text-xl font-bold text-white">{pageTitles[currentPage]}</h1>
           <div className="flex items-center space-x-4">
              <SecurityStatus activeScenario={activeScenario} isContingencyMode={isContingencyMode} isCircuitBreakerTripped={isCircuitBreakerTripped} />
+             
+             {!isCustomDataLoaded && (
+               <button onClick={onUploadData} className="hidden lg:flex items-center space-x-2 bg-brand-secondary text-white font-semibold py-1.5 px-3 rounded-md hover:opacity-90 text-sm">
+                 <Icons.database />
+                 <span>Upload Custom Data</span>
+               </button>
+             )}
+
              <div className="hidden sm:flex items-center space-x-3 bg-brand-bg border border-brand-border px-3 py-1.5 rounded-lg">
                 <KycStatusIndicator status={user.kyc.status} />
                 <div className="w-px h-4 bg-brand-border"></div>

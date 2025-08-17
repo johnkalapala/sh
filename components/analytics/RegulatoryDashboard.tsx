@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Card from '../shared/Card';
-import { generateRegulatoryDashboardSummary } from '../../services/geminiService';
+import backendApiService from '../../services/backendApiService';
 import { Icons } from '../Icons';
 import Spinner from '../shared/Spinner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -18,7 +18,7 @@ const RegulatoryDashboard: React.FC<{ backendState: any; bonds: Bond[] }> = ({ b
         const fetchSummary = async () => {
             setIsLoading(true);
             try {
-                const result = await generateRegulatoryDashboardSummary();
+                const result = await backendApiService.getRegulatorySummary();
                 setSummary(result);
             } catch (error) {
                 console.error("Failed to fetch regulatory summary:", error);
@@ -79,8 +79,8 @@ const RegulatoryDashboard: React.FC<{ backendState: any; bonds: Bond[] }> = ({ b
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <div className="flex items-center space-x-2 mb-4">
-                        <Icons.gemini />
-                        <h3 className="text-xl font-semibold">AI Market Summary</h3>
+                        <Icons.brainCircuit />
+                        <h3 className="text-xl font-semibold">Backend Market Summary</h3>
                     </div>
                      {isLoading ? <Spinner /> : (
                         <div className="gemini-analysis text-brand-text-secondary h-[350px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: summary }} />

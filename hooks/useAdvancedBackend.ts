@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback, useReducer } from 'react';
+
+
+import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType, User, PortfolioHolding, ToastMessage } from '../types';
 import { INITIAL_SYSTEM_METRICS, INITIAL_USER_WALLET_BALANCE } from '../constants';
-import { generateInitialBondMarket, getMarketPriceUpdates, generateGeminiAnalysis } from '../services/geminiService';
+import backendApiService from '../services/backendApiService';
 import { loadState, saveState, clearState } from '../utils/storage';
+import { parseBondData } from '../utils/parser';
 
 const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph', 'RegulatoryGateway', 'Kafka', 'AggregationSvc', 'OrderMatchShard1', 'OrderMatchShard2', 'OrderMatchShard3'];
 
@@ -33,11 +36,12 @@ type BackendState = {
     activeScenario: ScenarioType;
     isCircuitBreakerTripped: boolean;
     isContingencyMode: boolean;
+    isPriceSimulationEnabled: boolean;
 };
 
 type Action =
-  | { type: 'SET_BONDS'; payload: Bond[] }
-  | { type: 'UPDATE_BOND_PRICES'; payload: any[] }
+  | { type: 'SET_BONDS'; payload: { bonds: Bond[], totalItems: number } }
+  | { type: 'UPDATE_BOND_PRICES'; payload: { bondIds: string[], newPrices: number[] } }
   | { type: 'SET_USER'; payload: User }
   | { type: 'SET_PORTFOLIO'; payload: PortfolioHolding[] }
   | { type: 'ADD_TRANSACTION'; payload: TransactionEvent }
@@ -46,7 +50,9 @@ type Action =
   | { type: 'SET_METRICS'; payload: SystemMetrics }
   | { type: 'SET_SCENARIO'; payload: ScenarioType }
   | { type: 'SET_CIRCUIT_BREAKER'; payload: boolean }
-  | { type: 'SET_INITIAL_STATE'; payload: { user: User; portfolio: PortfolioHolding[] } };
+  | { type: 'SET_INITIAL_STATE'; payload: { user: User; portfolio: PortfolioHolding[] } }
+  | { type: 'RESET_MARKET_DATA' }
+  | { type: 'TOGGLE_PRICE_SIMULATION' };
 
 
 const reducer = (state: BackendState, action: Action): BackendState => {
@@ -54,45 +60,28 @@ const reducer = (state: BackendState, action: Action): BackendState => {
         case 'SET_INITIAL_STATE':
             return { ...state, user: action.payload.user, userPortfolio: action.payload.portfolio };
         case 'SET_BONDS': {
-            const bonds = action.payload;
-            const topMovers = [...bonds].sort((a, b) => Math.abs(b.dayChange) - Math.abs(a.dayChange)).slice(0, 10);
-            return { ...state, bonds, topMovers };
+            const { bonds, totalItems } = action.payload;
+            // Only update top movers and volume if there's data
+            const topMovers = totalItems > 0 ? backendApiService.getTopMovers(5) : [];
+            const totalVolume = totalItems > 0 ? backendApiService.getTotalVolume() : 0;
+            return { ...state, bonds, topMovers, totalVolume };
         }
         case 'UPDATE_BOND_PRICES': {
-            const updates = action.payload;
-            const bondsMap = new Map(state.bonds.map(b => [b.isin, b]));
-            updates.forEach(update => {
-                const bond = bondsMap.get(update.isin);
-                if(bond) {
-                    const oldPrice = bond.currentPrice;
-                    const newPrice = update.newPrice;
-                    bond.currentPrice = newPrice;
-                    bond.volume = update.newVolume;
-                    bond.bidAskSpread = update.newBidAskSpread;
-                    bond.dayChange = ((newPrice - oldPrice) / oldPrice) * 100;
-                }
-            });
-            const updatedBonds = Array.from(bondsMap.values());
-            const topMovers = [...updatedBonds].sort((a, b) => Math.abs(b.dayChange) - Math.abs(a.dayChange)).slice(0, 10);
-            return { ...state, bonds: updatedBonds, topMovers };
+            const priceMap = new Map(action.payload.bondIds.map((id, index) => [id, action.payload.newPrices[index]]));
+            const updatedBonds = state.bonds.map(bond => 
+                priceMap.has(bond.id) ? { ...bond, currentPrice: priceMap.get(bond.id)! } : bond
+            );
+            return { ...state, bonds: updatedBonds };
         }
+        case 'RESET_MARKET_DATA':
+            return { ...state, bonds: [], topMovers: [], totalVolume: 0 };
         case 'SET_USER':
             return { ...state, user: action.payload };
         case 'SET_PORTFOLIO':
             return { ...state, userPortfolio: action.payload };
         case 'ADD_TRANSACTION':{
              const newTransactions = [action.payload, ...state.transactions].slice(0, 200);
-             const newVolume = newTransactions
-                .filter(tx => tx.status === 'SUCCESS' && tx.type === 'SETTLEMENT')
-                .reduce((sum, tx) => {
-                    const match = tx.details.match(/(\d+\.\d{4})\s*units/);
-                    const priceMatch = tx.details.match(/price\s*~\s*(\d+\.\d+)/);
-                    if(match && priceMatch) {
-                        return sum + (parseFloat(match[1]) * parseFloat(priceMatch[1]));
-                    }
-                    return sum;
-                }, 0);
-            return { ...state, transactions: newTransactions, totalVolume: newVolume };
+            return { ...state, transactions: newTransactions };
         }
         case 'UPDATE_TRANSACTION': {
             const { txId, status, details, dltHash } = action.payload;
@@ -109,6 +98,8 @@ const reducer = (state: BackendState, action: Action): BackendState => {
             return { ...state, activeScenario: action.payload, isContingencyMode: action.payload === 'CONTINGENCY' };
         case 'SET_CIRCUIT_BREAKER':
             return { ...state, isCircuitBreakerTripped: action.payload };
+        case 'TOGGLE_PRICE_SIMULATION':
+            return { ...state, isPriceSimulationEnabled: !state.isPriceSimulationEnabled };
         default:
             return state;
     }
@@ -128,10 +119,50 @@ export const useAdvancedBackend = () => {
         activeScenario: 'NORMAL',
         isCircuitBreakerTripped: false,
         isContingencyMode: false,
+        isPriceSimulationEnabled: false,
     });
     
     const [isLoading, setIsLoading] = useState(true);
+    const [isCustomDataLoaded, setIsCustomDataLoaded] = useState(false);
+    const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filters, setFilters] = useState({});
+    const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0 });
+    const itemsPerPage = 12;
+
+    const priceSimulationInterval = useRef<number | null>(null);
+    const backendStateRef = useRef(state);
+    backendStateRef.current = state;
+
+    // --- Price Simulation ---
+    useEffect(() => {
+        if (state.isPriceSimulationEnabled && state.bonds.length > 0) {
+            priceSimulationInterval.current = window.setInterval(() => {
+                const currentBonds = backendStateRef.current.bonds;
+                if (currentBonds.length === 0) return;
+
+                const visibleBondIds = currentBonds.map(b => b.id);
+                const newPrices = currentBonds.map(b => {
+                    const jitter = (Math.random() - 0.5) * (b.currentPrice * 0.0005);
+                    return parseFloat((b.currentPrice + jitter).toFixed(2));
+                });
+                dispatch({ type: 'UPDATE_BOND_PRICES', payload: { bondIds: visibleBondIds, newPrices } });
+            }, 1500);
+        } else {
+            if (priceSimulationInterval.current) {
+                clearInterval(priceSimulationInterval.current);
+            }
+        }
+        return () => {
+            if (priceSimulationInterval.current) {
+                clearInterval(priceSimulationInterval.current);
+            }
+        };
+    }, [state.isPriceSimulationEnabled, state.bonds.length > 0]);
+    
 
     // --- Toast Handler ---
     const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
@@ -142,49 +173,87 @@ export const useAdvancedBackend = () => {
         }, 5000);
     }, []);
     
+    // --- Data Fetching and Pagination ---
+    const fetchPaginatedBonds = useCallback(() => {
+        const { bonds, totalPages, totalItems } = backendApiService.getBonds({
+            page: pagination.currentPage,
+            limit: itemsPerPage,
+            search: searchQuery,
+            filters,
+        });
+        dispatch({ type: 'SET_BONDS', payload: { bonds, totalItems } });
+        setPagination(p => ({ ...p, totalPages, totalItems }));
+    }, [pagination.currentPage, searchQuery, filters]);
+
+    useEffect(() => {
+        // This effect now runs whenever the underlying data changes, or pagination/filters are updated
+        if (!isLoading) {
+            fetchPaginatedBonds();
+        }
+    }, [fetchPaginatedBonds, isLoading]);
+    
+    // Reset page to 1 when search or filters change
+    useEffect(() => {
+        setPagination(p => ({ ...p, currentPage: 1 }));
+    }, [searchQuery, filters]);
+    
     // --- Initial Load ---
     useEffect(() => {
-        const initialize = async () => {
-            const savedState = loadState();
-            if (savedState) {
-                dispatch({ type: 'SET_INITIAL_STATE', payload: savedState });
-            }
-            
+        const loadInitialData = async () => {
             setIsLoading(true);
             try {
-                const initialBonds = await generateInitialBondMarket();
-                if(initialBonds && initialBonds.length > 0) {
-                    dispatch({ type: 'SET_BONDS', payload: initialBonds });
+                const response = await fetch('./bonds.json');
+                if (!response.ok) throw new Error("Sample data not found");
+                const sampleBonds = await response.json();
+                backendApiService.initializeData(sampleBonds);
+                
+                const savedState = loadState();
+                if (savedState) {
+                    dispatch({ type: 'SET_INITIAL_STATE', payload: savedState });
                 } else {
-                    addToast("Failed to generate market data from AI. Please refresh.", "error");
+                    const initialPortfolio = backendApiService.getInitialPortfolio(3);
+                    dispatch({ type: 'SET_PORTFOLIO', payload: initialPortfolio });
                 }
+                
             } catch (error) {
-                 addToast("Critical error fetching market data.", "error");
+                console.error("Failed to load initial sample data", error);
+                addToast("Could not load sample market data.", "error");
             } finally {
-                setIsLoading(false);
+                setIsLoading(false); // This will trigger the fetchPaginatedBonds effect
             }
         };
-        initialize();
+        loadInitialData();
     }, [addToast]);
     
-    // --- Live Market Data Feed ---
-    useEffect(() => {
-        if(state.bonds.length === 0 || state.isContingencyMode) return;
-        const interval = setInterval(async () => {
-            const updates = await getMarketPriceUpdates(state.bonds);
-            if (updates && updates.length > 0) {
-                dispatch({ type: 'UPDATE_BOND_PRICES', payload: updates });
-            }
-        }, 5000);
-        return () => clearInterval(interval);
-    }, [state.bonds, state.isContingencyMode]);
-
     // --- Persist State ---
     useEffect(() => {
         if (state.user.isConnected) {
             saveState({ user: state.user, portfolio: state.userPortfolio });
         }
     }, [state.user, state.userPortfolio]);
+
+    const loadBondsFromFile = async (file: File) => {
+        setUploadProgress(0);
+        try {
+            const parsedBonds = await parseBondData(file, (progress) => setUploadProgress(progress));
+            dispatch({ type: 'RESET_MARKET_DATA' }); // Clear old data
+            backendApiService.initializeData(parsedBonds);
+            
+            // Critical Step: Reset search/filters and pagination to trigger a re-fetch of the new data
+            setSearchQuery(''); 
+            setFilters({});
+            // This will trigger the fetchPaginatedBonds effect to load the first page of new data
+            setPagination({ currentPage: 1, totalPages: 1, totalItems: 0 }); 
+
+            setIsCustomDataLoaded(true);
+            addToast(`Successfully loaded ${parsedBonds.length} bonds.`, 'success');
+        } catch (error) {
+            addToast(String(error), 'error');
+            throw error;
+        } finally {
+            setUploadProgress(0);
+        }
+    };
 
 
     // --- User Actions ---
@@ -198,18 +267,7 @@ export const useAdvancedBackend = () => {
             upiAutopay: { status: 'none', threshold: 50000, amount: 200000 }
         };
         dispatch({ type: 'SET_USER', payload: newUserState });
-
-        if (state.bonds.length > 0) {
-            const portfolioBondsSample = [...state.bonds].sort(() => 0.5 - Math.random()).slice(0, 3);
-            const initialPortfolio: PortfolioHolding[] = portfolioBondsSample.map(bond => ({
-                bondId: bond.id,
-                quantity: Math.floor(Math.random() * 450 + 50) * 100,
-                purchasePrice: parseFloat((bond.currentPrice * (1 + (Math.random() - 0.5) * 0.01)).toFixed(2))
-            }));
-            dispatch({ type: 'SET_PORTFOLIO', payload: initialPortfolio });
-        } else {
-            dispatch({ type: 'SET_PORTFOLIO', payload: [] });
-        }
+        
         addToast("Wallet connected successfully!");
     };
     
@@ -220,7 +278,6 @@ export const useAdvancedBackend = () => {
         addToast("Wallet disconnected.", "error");
     };
 
-    // --- Transaction Simulation Logic ---
     const addTransaction = useCallback((tx: Omit<TransactionEvent, 'id' | 'timestamp'>) => {
         const newTx: TransactionEvent = {
             id: `tx_${Date.now()}_${Math.random()}`,
@@ -236,79 +293,8 @@ export const useAdvancedBackend = () => {
         dispatch({ type: 'UPDATE_TRANSACTION', payload: { txId, status, details, dltHash } });
     }, []);
 
-    useEffect(() => {
-        // Process pending transactions
-        state.transactions.forEach(tx => {
-            if (tx.status === 'PENDING') {
-                switch(tx.type) {
-                    case 'ORDER':
-                         setTimeout(() => {
-                            const matchDetails = tx.details.replace('submitted', `matched at price ~ ${state.bonds.find(b => tx.details.includes(b.isin))?.currentPrice.toFixed(2)}`);
-                            const settlementTx = addTransaction({ type: 'SETTLEMENT', status: 'PENDING', details: matchDetails });
-                            
-                            let settlementDelay = state.isContingencyMode ? 2500 : 1500;
-                            if (state.activeScenario === 'DLT_CONGESTION') settlementDelay = 8000;
-                            
-                            setTimeout(() => {
-                                const finalStatus: TransactionEvent['status'] = Math.random() < 0.95 ? 'SUCCESS' : 'FAILED';
-                                const dltProvider = state.isContingencyMode ? 'Standard Clearing' : 'Hedera DLT';
-                                const finalDetails = settlementTx.details.replace('matched', finalStatus === 'SUCCESS' ? `settled via ${dltProvider}` : 'failed');
-                                updateTransactionStatus(settlementTx.id, finalStatus, finalDetails);
-                            }, settlementDelay);
-                         }, 500);
-                         break;
-                    case 'KYC':
-                         setTimeout(() => {
-                            const finalStatus: TransactionEvent['status'] = state.metrics.DPI.status === 'Operational' ? 'SUCCESS' : 'FAILED';
-                            const finalDetails = tx.details.replace('submitted', finalStatus === 'SUCCESS' ? 'verified' : 'failed');
-                            updateTransactionStatus(tx.id, finalStatus, finalDetails);
-                             if(finalStatus === 'SUCCESS') {
-                                dispatch({ type: 'SET_USER', payload: { ...state.user, kyc: { status: 'verified', aadhaar: 'verified', pan: 'verified', bank: 'verified' } } });
-                                addToast("KYC Verification Successful!", 'success');
-                            } else {
-                                dispatch({ type: 'SET_USER', payload: { ...state.user, kyc: initialKycState } });
-                                addToast("KYC Verification Failed.", 'error');
-                            }
-                         }, state.metrics.DPI.status === 'Operational' ? 2000 : 10000);
-                         break;
-                     case 'UPI_MANDATE':
-                        setTimeout(() => {
-                            const finalStatus: TransactionEvent['status'] = Math.random() > 0.1 ? 'SUCCESS' : 'FAILED';
-                            const finalDetails = tx.details.replace('sent', finalStatus === 'SUCCESS' ? 'activated' : 'failed');
-                            updateTransactionStatus(tx.id, finalStatus, finalDetails);
-                            if(finalStatus === 'SUCCESS') {
-                                dispatch({ type: 'SET_USER', payload: { ...state.user, upiAutopay: {...state.user.upiAutopay, status: 'active'} } });
-                                addToast("UPI Auto Top-up Mandate Active!", 'success');
-                            } else {
-                                dispatch({ type: 'SET_USER', payload: { ...state.user, upiAutopay: {...state.user.upiAutopay, status: 'none'} } });
-                                addToast("UPI Mandate setup failed.", 'error');
-                            }
-                        }, 3000);
-                        break;
-                     case 'FUNDING':
-                        setTimeout(() => {
-                            const finalStatus: TransactionEvent['status'] = Math.random() > 0.05 ? 'SUCCESS' : 'FAILED';
-                            const finalDetails = tx.details.replace('initiated', finalStatus === 'SUCCESS' ? 'successful' : 'failed');
-                            updateTransactionStatus(tx.id, finalStatus, finalDetails);
-                             if(finalStatus === 'SUCCESS' && !tx.details.includes('[PROCESSED]')) {
-                                const amountMatch = tx.details.match(/₹([\d,]+)/);
-                                if (amountMatch) {
-                                    const amount = parseInt(amountMatch[1].replace(/,/g, ''), 10);
-                                    dispatch({ type: 'SET_USER', payload: { ...state.user, walletBalance: state.user.walletBalance + amount } });
-                                    addToast(`Wallet funded with ₹${amount.toLocaleString()}.`, 'success');
-                                }
-                                tx.details += ' [PROCESSED]';
-                            }
-                        }, 2500);
-                        break;
-                }
-            }
-        });
-    }, [state.transactions, state.bonds, state.activeScenario, state.isContingencyMode, state.metrics.DPI.status, addTransaction, updateTransactionStatus, addToast, state.user]);
-
-
     // --- Trade and KYC/UPI Handlers ---
-    const handleTrade = useCallback((bond: Bond, quantity: number, tradeType: 'buy' | 'sell') => {
+    const handleTrade = useCallback(async (bond: Bond, quantity: number, tradeType: 'buy' | 'sell') => {
         if (state.isCircuitBreakerTripped) {
             addToast("Trading is temporarily halted due to extreme market volatility.", "error");
             return;
@@ -324,52 +310,98 @@ export const useAdvancedBackend = () => {
             return;
         }
         
-        addTransaction({ type: 'ORDER', status: 'PENDING', details: `[${bond.isin}] ${tradeType.toUpperCase()} order for ${quantity.toFixed(4)} units submitted.` });
+        const orderTx = addTransaction({ type: 'ORDER', status: 'PENDING', details: `[${bond.isin}] ${tradeType.toUpperCase()} order for ${quantity.toFixed(4)} units submitted.` });
 
-        dispatch({ type: 'SET_USER', payload: { ...state.user, walletBalance: state.user.walletBalance + (tradeType === 'sell' ? tradeValue : -tradeValue) } });
+        try {
+            const result = await backendApiService.submitTrade(bond, quantity, tradeType);
+            updateTransactionStatus(orderTx.id, 'SUCCESS', `Order for ${quantity.toFixed(4)} units of ${bond.isin} confirmed.`);
+            const settlementTx = addTransaction({ type: 'SETTLEMENT', status: 'PENDING', dltHash: result.txHash, details: `Settlement pending for trade on ${bond.isin}.`});
+            
+            setTimeout(() => {
+                updateTransactionStatus(settlementTx.id, 'SUCCESS', `Trade for ${quantity.toFixed(4)} units of ${bond.isin} settled on Polygon.`);
+            }, 2000);
+
+            dispatch({ type: 'SET_USER', payload: { ...state.user, walletBalance: state.user.walletBalance + (tradeType === 'sell' ? tradeValue : -tradeValue) } });
         
-        const newPortfolio = [...state.userPortfolio];
-        const holdingIndex = newPortfolio.findIndex(h => h.bondId === bond.id);
-        if (holdingIndex > -1) {
-            const holding = newPortfolio[holdingIndex];
-            if (tradeType === 'buy') {
-                const newTotalValue = (holding.purchasePrice * holding.quantity) + tradeValue;
-                holding.quantity += quantity;
-                holding.purchasePrice = newTotalValue / holding.quantity;
-            } else {
-                holding.quantity -= quantity;
-                if (holding.quantity <= 0.0001) newPortfolio.splice(holdingIndex, 1);
+            const newPortfolio = [...state.userPortfolio];
+            const holdingIndex = newPortfolio.findIndex(h => h.bondId === bond.id);
+            if (holdingIndex > -1) {
+                const holding = newPortfolio[holdingIndex];
+                if (tradeType === 'buy') {
+                    const newTotalValue = (holding.purchasePrice * holding.quantity) + tradeValue;
+                    holding.quantity += quantity;
+                    holding.purchasePrice = newTotalValue / holding.quantity;
+                } else {
+                    holding.quantity -= quantity;
+                    if (holding.quantity <= 0.0001) newPortfolio.splice(holdingIndex, 1);
+                }
+            } else if (tradeType === 'buy') {
+                newPortfolio.push({ bondId: bond.id, quantity: quantity, purchasePrice: bond.currentPrice });
             }
-        } else if (tradeType === 'buy') {
-            newPortfolio.push({ bondId: bond.id, quantity: quantity, purchasePrice: bond.currentPrice });
-        }
-        dispatch({ type: 'SET_PORTFOLIO', payload: newPortfolio });
-        addToast(`${tradeType.toUpperCase()} order for ${bond.name.split(' ')[0]} submitted!`);
-    }, [state.user, state.userPortfolio, state.isCircuitBreakerTripped, addTransaction, addToast]);
+            dispatch({ type: 'SET_PORTFOLIO', payload: newPortfolio });
+            addToast(`${tradeType.toUpperCase()} order for ${bond.name.split(' ')[0]} successful!`);
 
-    const handleSubmitKyc = () => {
+        } catch (error) {
+            addToast(`Trade failed: ${String(error)}`, 'error');
+            updateTransactionStatus(orderTx.id, 'FAILED', `Order for ${bond.isin} failed to execute.`);
+        }
+
+    }, [state.user, state.userPortfolio, state.isCircuitBreakerTripped, addTransaction, updateTransactionStatus, addToast]);
+
+    const handleSubmitKyc = async () => {
         dispatch({ type: 'SET_USER', payload: { ...state.user, kyc: { ...state.user.kyc, status: 'pending' }} });
-        addTransaction({ type: 'KYC', status: 'PENDING', details: `Full KYC verification submitted.` });
-        addToast("KYC verification process started.");
+        const kycTx = addTransaction({ type: 'KYC', status: 'PENDING', details: `Full KYC verification submitted.` });
+        
+        try {
+            await backendApiService.submitKyc(state.user.walletAddress);
+            updateTransactionStatus(kycTx.id, 'SUCCESS', `KYC for ${state.user.walletAddress} verified.`);
+            dispatch({ type: 'SET_USER', payload: { ...state.user, kyc: { status: 'verified', aadhaar: 'verified', pan: 'verified', bank: 'verified' } } });
+            addToast("KYC Verification Successful!", 'success');
+        } catch (error) {
+            updateTransactionStatus(kycTx.id, 'FAILED', `KYC verification failed.`);
+            dispatch({ type: 'SET_USER', payload: { ...state.user, kyc: initialKycState } });
+            addToast("KYC Verification Failed.", 'error');
+        }
     };
 
     const handleStartUpiMandate = () => {
         dispatch({ type: 'SET_USER', payload: {...state.user, upiAutopay: {...state.user.upiAutopay, status: 'pending'} } });
         addTransaction({ type: 'UPI_MANDATE', status: 'PENDING', details: `UPI Autopay mandate request sent.` });
         addToast("UPI Auto Top-up mandate request sent.");
+        
+        setTimeout(() => {
+             const finalStatus: TransactionEvent['status'] = Math.random() > 0.1 ? 'SUCCESS' : 'FAILED';
+              if(finalStatus === 'SUCCESS') {
+                dispatch({ type: 'SET_USER', payload: { ...state.user, upiAutopay: {...state.user.upiAutopay, status: 'active'} } });
+                addToast("UPI Auto Top-up Mandate Active!", 'success');
+            } else {
+                dispatch({ type: 'SET_USER', payload: { ...state.user, upiAutopay: {...state.user.upiAutopay, status: 'none'} } });
+                addToast("UPI Mandate setup failed.", 'error');
+            }
+        }, 3000);
     };
 
     const handleAddFunds = (amount: number) => {
         addTransaction({ type: 'FUNDING', status: 'PENDING', details: `Wallet funding of ₹${amount.toLocaleString()} initiated.` });
         addToast(`Funding request for ₹${amount.toLocaleString()} submitted.`);
+        
+        setTimeout(() => {
+            dispatch({ type: 'SET_USER', payload: { ...state.user, walletBalance: state.user.walletBalance + amount } });
+            addToast(`Wallet funded with ₹${amount.toLocaleString()}.`, 'success');
+        }, 2500);
     };
     
-    // This is the simulation part from the old hook, adapted to the new state management
-    const runScenario = (scenario: ScenarioType) => dispatch({ type: 'SET_SCENARIO', payload: scenario });
+    const runScenario = (scenario: ScenarioType) => {
+        dispatch({ type: 'SET_SCENARIO', payload: scenario });
+    }
 
     // Return everything needed by the UI
     return {
-        backendState: state,
+        backendState: {
+            ...state,
+            togglePriceSimulation: () => dispatch({ type: 'TOGGLE_PRICE_SIMULATION' }),
+            runScenario
+        },
         isLoading,
         toasts,
         addToast,
@@ -379,5 +411,15 @@ export const useAdvancedBackend = () => {
         handleSubmitKyc,
         handleStartUpiMandate,
         handleAddFunds,
+        isCustomDataLoaded,
+        isUploaderOpen,
+        uploadProgress,
+        openUploader: () => setIsUploaderOpen(true),
+        closeUploader: () => setIsUploaderOpen(false),
+        loadBondsFromFile,
+        searchBonds: setSearchQuery,
+        setBondFilters: setFilters,
+        pagination,
+        setPagination
     };
 };

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ViewState, Bond, User } from '../types';
-import { generateBondDeepDiveAnalysis, generateRiskAndValueScoreAnalysis } from '../services/geminiService';
+import backendApiService from '../services/backendApiService';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -43,7 +43,7 @@ const RiskValueScoreCard: React.FC<{ bond: Bond }> = ({ bond }) => {
         setIsLoading(true);
         setAnalysis(null);
         try {
-            const result = await generateRiskAndValueScoreAnalysis(bond);
+            const result = await backendApiService.getRiskAndValueScoreAnalysis();
             setAnalysis(result);
         } catch(e) {
             setAnalysis('Error fetching analysis.');
@@ -129,7 +129,7 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
     return (
       <div>
         <h2 className="text-2xl text-red-500">Bond not found</h2>
-        <p className="text-brand-text-secondary">The live market data may have changed. Please return to the marketplace.</p>
+        <p className="text-brand-text-secondary">The market data may have changed. Please return to the marketplace.</p>
         <button onClick={() => navigate({ page: 'marketplace' })} className="text-brand-primary mt-4">
           &larr; Back to Marketplace
         </button>
@@ -143,7 +143,7 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
     setIsLoading(true);
     setDeepDiveAnalysis(null);
     try {
-        const result = await generateBondDeepDiveAnalysis(bond);
+        const result = await backendApiService.getMarketNews(); // Using market news as a placeholder
         setDeepDiveAnalysis(result);
     } catch (error) {
         console.error("Failed to fetch deep dive analysis:", error);
@@ -224,20 +224,14 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
       
       <Card>
         <div className="flex items-center space-x-2 mb-4">
-          <Icons.gemini />
-          <h3 className="text-xl font-semibold">{isContingencyMode ? 'Standard Issuer Analysis' : 'Gemini Issuer Deep Dive'}</h3>
+          <Icons.brainCircuit />
+          <h3 className="text-xl font-semibold">Issuer Deep Dive</h3>
         </div>
-        {isContingencyMode ? (
-             <div className="text-center py-8 bg-brand-bg rounded-lg">
-                <Icons.zap className="h-12 w-12 mx-auto text-brand-yellow mb-2" />
-                <h4 className="text-lg font-semibold text-brand-yellow">Feature Unavailable in Standard Mode</h4>
-                <p className="text-brand-text-secondary mt-1">Advanced AI analysis requires a connection to the Gemini API, which is currently bypassed.</p>
-            </div>
-        ) : isLoading ? <Spinner /> : deepDiveAnalysis ? (
+        {isLoading ? <Spinner /> : deepDiveAnalysis ? (
             <div className="gemini-analysis" dangerouslySetInnerHTML={{ __html: deepDiveAnalysis }} />
         ) : (
           <div className="text-center py-8">
-            <p className="mb-4 text-brand-text-secondary">Get a detailed, AI-generated report on the issuer's profile, financial health, and recent news.</p>
+            <p className="mb-4 text-brand-text-secondary">Get a detailed report on the issuer's profile, financial health, and recent news from our backend service.</p>
             <button onClick={handleFetchDeepDive} className="bg-brand-secondary text-white font-semibold py-2 px-4 rounded-md hover:opacity-90 transition-opacity flex items-center space-x-2 mx-auto">
               {isLoading ? <><Icons.spinner className="animate-spin" /><span>Generating...</span></> : <span>Generate Issuer Report</span>}
             </button>

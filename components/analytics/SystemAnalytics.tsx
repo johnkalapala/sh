@@ -144,7 +144,7 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
                           <div className="pt-2">
                             <h4 className="px-3 pb-1 text-xs font-semibold text-brand-text-secondary uppercase">Advanced Simulations</h4>
                             <TestMenuItem label="Scalability Test" testId="scalability" scenarioId="SCALE_TEST" icon={<Icons.scaling />} />
-                            <TestMenuItem label="Quantum Lab" testId="quantum" scenarioId="NORMAL" icon={<Icons.gemini />} />
+                            <TestMenuItem label="Quantum Lab" testId="quantum" scenarioId="NORMAL" icon={<Icons.lab />} />
                          </div>
                     </nav>
                     {/* Content Pane */}

@@ -3,6 +3,10 @@ import Card from './shared/Card';
 import { Icons } from './Icons';
 import CodeSnippet from './shared/CodeSnippet';
 
+interface IntegrationsProps {
+    onUploadData: () => void;
+}
+
 const pythonSnippet = `import requests
 import json
 
@@ -72,7 +76,7 @@ createUpiMandate("user-12345", 500000)
   .then(mandate => console.log('UPI Mandate request created:', mandate));
 `;
 
-const Integrations: React.FC = () => {
+const Integrations: React.FC<IntegrationsProps> = ({ onUploadData }) => {
     const [apiKey, setApiKey] = useState('');
     const [apiLog, setApiLog] = useState<string[]>([]);
     
@@ -104,6 +108,13 @@ const Integrations: React.FC = () => {
             </Card>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-6">
+                     <Card>
+                        <h3 className="text-xl font-semibold mb-4">Market Data Management</h3>
+                        <p className="text-sm text-brand-text-secondary mb-3">Load your own bond dataset (in CSV format) to use within the platform. This will replace any existing market data.</p>
+                        <button onClick={onUploadData} className="w-full bg-brand-secondary text-white font-semibold py-2 px-4 rounded-md hover:opacity-90">
+                            Upload New Dataset
+                        </button>
+                    </Card>
                     <Card>
                         <h3 className="text-xl font-semibold mb-4">API Key Management</h3>
                         {apiKey ? (
@@ -118,11 +129,6 @@ const Integrations: React.FC = () => {
                             </button>
                         )}
                     </Card>
-                    <Card>
-                        <h3 className="text-xl font-semibold mb-4">UPI Mandate API</h3>
-                         <p className="text-sm text-brand-text-secondary mb-2">Programmatically create UPI Autopay mandates for seamless user onboarding and settlement.</p>
-                        <CodeSnippet code={upiMandateSnippet} language="javascript" />
-                    </Card>
                 </div>
                 <Card className="lg:col-span-2">
                     <h3 className="text-xl font-semibold mb-4">Live API Call Log</h3>
@@ -133,9 +139,9 @@ const Integrations: React.FC = () => {
                     </div>
                 </Card>
             </div>
-            <Card>
+             <Card>
                  <h3 className="text-xl font-semibold mb-4">Developer Quickstart</h3>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <h4 className="font-semibold mb-2">Query Bond Data (Python)</h4>
                         <CodeSnippet code={pythonSnippet} language="python" />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { generateQuantumSimulationAnalysis } from '../../../services/geminiService';
+import backendApiService from '../../../services/backendApiService';
 import { Icons } from '../../Icons';
 import Spinner from '../../shared/Spinner';
 
@@ -18,7 +18,7 @@ const QuantumLabView: React.FC = () => {
         setIsLoading(true);
         setSimulationResult('');
         try {
-            const result = await generateQuantumSimulationAnalysis(selectedAlgorithm);
+            const result = await backendApiService.getQuantumSimulation(selectedAlgorithm);
             setSimulationResult(result);
         } catch (error) {
             console.error(error);
@@ -31,7 +31,7 @@ const QuantumLabView: React.FC = () => {
     return (
          <div className="h-full flex flex-col">
             <div className="flex items-center space-x-3 mb-4">
-                <Icons.gemini className="h-8 w-8 text-brand-primary" />
+                <Icons.chip className="h-8 w-8 text-brand-primary" />
                 <div>
                     <h2 className="text-xl font-bold text-white">Quantum Algorithm Simulation</h2>
                     <p className="text-sm text-brand-text-secondary">Exploring Phase 3 capabilities for advanced financial modeling.</p>

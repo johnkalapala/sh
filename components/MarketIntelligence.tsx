@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { generateMarketNewsAnalysis } from '../services/geminiService';
+import backendApiService from '../services/backendApiService';
 import { Icons } from './Icons';
 import Spinner from './shared/Spinner';
 
@@ -12,7 +11,7 @@ const MarketIntelligence: React.FC = () => {
     const fetchNews = async () => {
         setIsLoading(true);
         try {
-            const result = await generateMarketNewsAnalysis();
+            const result = await backendApiService.getMarketNews();
             setNews(result);
             setLastUpdated(new Date());
         } catch (error) {

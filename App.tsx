@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { ViewState, ToastMessage } from './types';
+
+import React, { useState, useCallback } from 'react';
+import { ViewState } from './types';
 import { useAdvancedBackend } from './hooks/useAdvancedBackend';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -21,6 +22,7 @@ import AddFundsModal from './components/AddFundsModal';
 import Spinner from './components/shared/Spinner';
 import ProfileSettings from './components/ProfileSettings';
 import CircuitBreakerBanner from './components/CircuitBreakerBanner';
+import DataUploader from './components/DataUploader';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>({ page: 'dashboard' });
@@ -39,9 +41,19 @@ const App: React.FC = () => {
     handleSubmitKyc,
     handleStartUpiMandate,
     handleAddFunds,
+    isUploaderOpen,
+    openUploader,
+    closeUploader,
+    loadBondsFromFile,
+    searchBonds,
+    setBondFilters,
+    pagination,
+    setPagination,
+    isCustomDataLoaded,
+    uploadProgress
   } = useAdvancedBackend();
   
-  const { user, userPortfolio, isContingencyMode, isCircuitBreakerTripped } = backendState;
+  const { user, userPortfolio, isContingencyMode, isCircuitBreakerTripped, bonds } = backendState;
 
   const navigate = useCallback((view: ViewState) => {
     setCurrentView(view);
@@ -72,7 +84,20 @@ const App: React.FC = () => {
   const showUpiBanner = user.kyc.status === 'verified' && user.upiAutopay.status !== 'active' && user.walletBalance < user.upiAutopay.threshold;
 
   const renderPage = () => {
-    const pageProps = { navigate, user, handleTrade, userPortfolio, addToast, backendState, onOpenAddFunds: handleOpenAddFundsModal };
+    const pageProps = { 
+        navigate, 
+        user, 
+        handleTrade, 
+        userPortfolio, 
+        addToast, 
+        backendState, 
+        onOpenAddFunds: handleOpenAddFundsModal,
+        searchBonds,
+        setBondFilters,
+        pagination,
+        setPagination,
+        isLoading,
+    };
 
     switch (currentView.page) {
       case 'dashboard':
@@ -86,7 +111,7 @@ const App: React.FC = () => {
       case 'system-analytics':
         return <SystemAnalytics backendState={backendState} />;
       case 'integrations':
-        return <Integrations />;
+        return <Integrations onUploadData={openUploader} />;
       case 'hardware-acceleration':
         return <HardwareAcceleration />;
       case 'profile-settings':
@@ -95,16 +120,6 @@ const App: React.FC = () => {
         return <Dashboard {...pageProps} />;
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center text-center p-4">
-        <Spinner />
-        <p className="mt-4 text-lg font-semibold text-brand-primary animate-pulse">Initializing AI-Native Market...</p>
-        <p className="text-brand-text-secondary">Generating live bond data from Gemini. This may take a moment.</p>
-      </div>
-    );
-  }
 
   if (!user.isConnected) {
     return <LoginModal onConnect={handleConnectWallet} />;
@@ -122,6 +137,8 @@ const App: React.FC = () => {
           activeScenario={backendState.activeScenario}
           isContingencyMode={isContingencyMode}
           isCircuitBreakerTripped={isCircuitBreakerTripped}
+          onUploadData={openUploader}
+          isCustomDataLoaded={isCustomDataLoaded}
         />
         {isContingencyMode && <ContingencyBanner />}
         {isCircuitBreakerTripped && <CircuitBreakerBanner />}
@@ -138,6 +155,7 @@ const App: React.FC = () => {
           {isKycModalOpen && <KycModal onClose={handleCloseKycModal} onKycSubmit={onKycSubmit} />}
           {isUpiModalOpen && <UpiMandateModal onClose={handleCloseUpiModal} onUpiSubmit={onUpiSubmit} />}
           {isAddFundsModalOpen && <AddFundsModal onClose={handleCloseAddFundsModal} onAddFunds={onAddFundsSubmit} />}
+          {isUploaderOpen && <DataUploader onFileLoaded={loadBondsFromFile} onClose={closeUploader} uploadProgress={uploadProgress} isClosable={isCustomDataLoaded || bonds.length > 0} />}
         </main>
       </div>
     </div>
