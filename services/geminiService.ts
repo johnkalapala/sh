@@ -1,9 +1,7 @@
 import { Bond } from '../types';
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-// This is a mock implementation. In a real app, the API key would be
-// securely managed and not exposed in the frontend.
-// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// This is a mock implementation. In a real app, API calls would be made
+// from a secure backend server, not the frontend.
 
 const MOCK_API_DELAY = 1500;
 
@@ -291,9 +289,9 @@ This is an AI-driven summary for regulatory oversight, highlighting key market t
 `;
 
 
-// Mock function to simulate a Gemini API call
+// Mock function to simulate an API call
 export const generateGeminiAnalysis = (type: 'general' | 'bond' | 'liquidity', bond?: Bond): Promise<string> => {
-  console.log(`Generating Gemini Analysis for: ${type}`);
+  console.log(`Generating Mock Analysis for: ${type}`);
   return new Promise(resolve => {
     setTimeout(() => {
       if (type === 'bond' && bond) {
@@ -308,7 +306,7 @@ export const generateGeminiAnalysis = (type: 'general' | 'bond' | 'liquidity', b
 };
 
 export const generateBondDeepDiveAnalysis = (bond: Bond): Promise<string> => {
-  console.log("Generating Gemini Deep Dive Analysis...");
+  console.log("Generating Mock Deep Dive Analysis...");
   return new Promise(resolve => {
       setTimeout(() => {
           resolve(mockDeepDiveAnalysisResponse(bond));
@@ -317,7 +315,7 @@ export const generateBondDeepDiveAnalysis = (bond: Bond): Promise<string> => {
 };
 
 export const generateMarketNewsAnalysis = (): Promise<string> => {
-    console.log("Generating Gemini Market News Analysis...");
+    console.log("Generating Mock Market News Analysis...");
     return new Promise(resolve => {
         setTimeout(() => {
             resolve(mockMarketNewsResponse);
@@ -326,7 +324,7 @@ export const generateMarketNewsAnalysis = (): Promise<string> => {
 };
 
 export const generatePortfolioOptimizationAnalysis = (portfolio: any[], balance: number, riskProfile: string, objective: string): Promise<string> => {
-  console.log("Generating Gemini Portfolio Optimization Analysis...");
+  console.log("Generating Mock Portfolio Optimization Analysis...");
   return new Promise(resolve => {
       setTimeout(() => {
           resolve(mockPortfolioAnalysisResponse(portfolio, balance, riskProfile, objective));
@@ -335,7 +333,7 @@ export const generatePortfolioOptimizationAnalysis = (portfolio: any[], balance:
 };
 
 export const generateQuantumSimulationAnalysis = (algorithm: string): Promise<string> => {
-    console.log(`Generating Gemini Quantum Simulation for: ${algorithm}`);
+    console.log(`Generating Mock Quantum Simulation for: ${algorithm}`);
     return new Promise(resolve => {
         setTimeout(() => {
             resolve(mockQuantumSimulationResponse(algorithm));
@@ -344,7 +342,7 @@ export const generateQuantumSimulationAnalysis = (algorithm: string): Promise<st
 };
 
 export const generateRiskAndValueScoreAnalysis = (bond: Bond): Promise<string> => {
-    console.log(`Generating Gemini Risk & Value Score Analysis for: ${bond.isin}`);
+    console.log(`Generating Mock Risk & Value Score Analysis for: ${bond.isin}`);
     return new Promise(resolve => {
         setTimeout(() => {
             resolve(mockRiskValueScoreAnalysis(bond));
@@ -353,7 +351,7 @@ export const generateRiskAndValueScoreAnalysis = (bond: Bond): Promise<string> =
 };
 
 export const generateRegulatoryDashboardSummary = (): Promise<string> => {
-    console.log(`Generating Gemini Regulatory Dashboard Summary`);
+    console.log(`Generating Mock Regulatory Dashboard Summary`);
     return new Promise(resolve => {
         setTimeout(() => {
             resolve(mockRegulatoryDashboardSummary());

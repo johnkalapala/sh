@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { ViewState, Bond, User } from '../types';
-import { BONDS } from '../constants';
 import { generateBondDeepDiveAnalysis, generateRiskAndValueScoreAnalysis } from '../services/geminiService';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
@@ -19,6 +18,7 @@ interface BondDetailProps {
   addToast: (message: string, type?: 'success' | 'error') => void;
   backendState: any;
   isContingencyMode: boolean;
+  bonds: Bond[];
 }
 
 const generatePriceHistory = (basePrice: number) => {
@@ -117,15 +117,15 @@ const LiquidityImpactCard: React.FC<{ bond: Bond }> = ({ bond }) => {
 };
 
 
-const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState, isContingencyMode }) => {
+const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState, isContingencyMode, bonds }) => {
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
   const bond = useMemo(() => {
-    const staticBond = BONDS.find(b => b.id === bondId);
+    const staticBond = bonds.find(b => b.id === bondId);
     return backendState.liveBondData[bondId] || staticBond;
-  }, [bondId, backendState.liveBondData]);
+  }, [bondId, backendState.liveBondData, bonds]);
   
   if (!bond) {
     return (

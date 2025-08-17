@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Card from './shared/Card';
-import { BONDS } from '../constants';
-import { PortfolioHolding, ViewState, User } from '../types';
+import { PortfolioHolding, ViewState, User, Bond } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Icons } from './Icons';
 import { generatePortfolioOptimizationAnalysis } from '../services/geminiService';
@@ -16,9 +15,10 @@ interface PortfolioProps {
     user: User;
     isContingencyMode: boolean;
     onOpenAddFunds: () => void;
+    bonds: Bond[];
 }
 
-const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, isContingencyMode, onOpenAddFunds }) => {
+const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, isContingencyMode, onOpenAddFunds, bonds }) => {
     const [riskProfile, setRiskProfile] = useState('balanced');
     const [objective, setObjective] = useState('balanced');
     const [isOptimizing, setIsOptimizing] = useState(false);
@@ -26,7 +26,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
     const [optimizationAnalysis, setOptimizationAnalysis] = useState<string | null>(null);
 
     const portfolioBonds = userPortfolio.map(holding => {
-        const bondDetails = BONDS.find(b => b.id === holding.bondId);
+        const bondDetails = bonds.find(b => b.id === holding.bondId);
         return { ...holding, ...bondDetails };
     });
 

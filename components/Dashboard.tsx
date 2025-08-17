@@ -3,7 +3,6 @@ import Card from './shared/Card';
 import Spinner from './shared/Spinner';
 import { generateGeminiAnalysis } from '../services/geminiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { BONDS } from '../constants';
 import { Icons } from './Icons';
 import { ViewState, Bond, TransactionEvent, User } from '../types';
 import MarketIntelligence from './MarketIntelligence';
@@ -91,10 +90,11 @@ interface DashboardProps {
   topMovers: Bond[];
   user: User;
   onOpenAddFunds: () => void;
+  bonds: Bond[];
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers, user, onOpenAddFunds }) => {
+const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers, user, onOpenAddFunds, bonds }) => {
   const [analysis, setAnalysis] = useState<string>('');
   const [liquidityScore, setLiquidityScore] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -162,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
             <Icons.issues />
             <h3 className="text-lg font-semibold text-brand-text-secondary">Active Issues</h3>
           </div>
-          <p className="text-3xl font-bold text-white">{BONDS.length.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-white">{bonds.length.toLocaleString()}</p>
            <p className="text-sm text-brand-text-secondary">+12 new listings</p>
         </Card>
          <Card className="md:col-span-2">

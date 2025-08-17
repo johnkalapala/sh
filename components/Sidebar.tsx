@@ -39,6 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, navigate }) => {
         <NavItem label="Marketplace" page="marketplace" currentPage={currentPage} navigate={navigate} icon={<Icons.marketplace />} />
         <NavItem label="Portfolio" page="portfolio" currentPage={currentPage} navigate={navigate} icon={<Icons.portfolio />} />
         <div className="my-2 border-t border-brand-border"></div>
+        <NavItem label="Profile & Settings" page="profile-settings" currentPage={currentPage} navigate={navigate} icon={<Icons.profile />} />
+        <div className="my-2 border-t border-brand-border"></div>
         <NavItem label="System Analytics" page="system-analytics" currentPage={currentPage} navigate={navigate} icon={<Icons.analytics />} />
         <NavItem label="Integrations & API" page="integrations" currentPage={currentPage} navigate={navigate} icon={<Icons.api />} />
         <NavItem label="Hardware Acceleration" page="hardware-acceleration" currentPage={currentPage} navigate={navigate} icon={<Icons.chip />} />

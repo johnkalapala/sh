@@ -51,7 +51,7 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
   const fairValueLabel = isContingencyMode ? 'Standard Fair Value' : 'Quantum Fair Value';
   const fairValueColor = isContingencyMode ? 'text-brand-yellow' : 'text-brand-primary';
 
-  const canTrade = user.kycStatus === 'verified';
+  const canTrade = user.kyc.status === 'verified';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">

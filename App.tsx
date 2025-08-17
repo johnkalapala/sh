@@ -1,7 +1,6 @@
-
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { ViewState, PortfolioHolding, Bond, User, ToastMessage, TransactionEvent } from './types';
-import { INITIAL_USER_PORTFOLIO, BONDS, INITIAL_USER_WALLET_BALANCE } from './constants';
+import { INITIAL_USER_WALLET_BALANCE } from './constants';
 import { useBackendSimulator } from './hooks/useBackendSimulator';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -20,23 +19,64 @@ import UpiBanner from './components/UpiBanner';
 import UpiMandateModal from './components/UpiMandateModal';
 import ContingencyBanner from './components/ContingencyBanner';
 import AddFundsModal from './components/AddFundsModal';
+import Spinner from './components/shared/Spinner';
+import ProfileSettings from './components/ProfileSettings';
+
+const initialKycState = {
+  status: 'unverified' as 'unverified' | 'pending' | 'verified',
+  aadhaar: 'unverified' as 'unverified' | 'verified',
+  pan: 'unverified' as 'unverified' | 'verified',
+  bank: 'unverified' as 'unverified' | 'verified',
+};
 
 const App: React.FC = () => {
+  const [bonds, setBonds] = useState<Bond[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<ViewState>({ page: 'dashboard' });
   const [user, setUser] = useState<User>({ 
     isConnected: false, 
     walletAddress: '', 
     walletBalance: 0, 
-    kycStatus: 'unverified', 
+    kyc: initialKycState,
     upiAutopay: { status: 'none', threshold: 50000, amount: 200000 }
   });
-  const [userPortfolio, setUserPortfolio] = useState<PortfolioHolding[]>(INITIAL_USER_PORTFOLIO);
+  const [userPortfolio, setUserPortfolio] = useState<PortfolioHolding[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [isAddFundsModalOpen, setIsAddFundsModalOpen] = useState(false);
 
-  const backendState = useBackendSimulator(BONDS, user.upiAutopay.status === 'active');
+  // Fetch bond data on initial load
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/bonds.json');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data: Bond[] = await response.json();
+        setBonds(data);
+
+        // Dynamically generate an initial portfolio after data is loaded
+        const portfolioBondsSample = [...data].sort(() => 0.5 - Math.random()).slice(0, 3);
+        const initialPortfolio: PortfolioHolding[] = portfolioBondsSample.map(bond => ({
+          bondId: bond.id,
+          quantity: Math.floor(Math.random() * 450 + 50) * 100,
+          purchasePrice: parseFloat((bond.currentPrice * (1 + (Math.random() - 0.5) * 0.01)).toFixed(2))
+        }));
+        setUserPortfolio(initialPortfolio);
+        
+      } catch (error) {
+        console.error("Failed to fetch bond data:", error);
+        addToast("Failed to load market data.", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const backendState = useBackendSimulator(bonds, user.upiAutopay.status === 'active');
   const { activeScenario, isContingencyMode } = backendState;
 
   const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
@@ -65,14 +105,14 @@ const App: React.FC = () => {
       isConnected: true,
       walletAddress: randomAddress,
       walletBalance: INITIAL_USER_WALLET_BALANCE,
-      kycStatus: 'unverified',
+      kyc: initialKycState,
       upiAutopay: { status: 'none', threshold: 50000, amount: 200000 }
     });
     addToast("Wallet connected successfully!");
   };
   
   const handleDisconnectWallet = () => {
-    setUser({ isConnected: false, walletAddress: '', walletBalance: 0, kycStatus: 'unverified', upiAutopay: { status: 'none', threshold: 50000, amount: 200000 } });
+    setUser({ isConnected: false, walletAddress: '', walletBalance: 0, kyc: initialKycState, upiAutopay: { status: 'none', threshold: 50000, amount: 200000 } });
     addToast("Wallet disconnected.", "error");
   };
 
@@ -83,15 +123,14 @@ const App: React.FC = () => {
   const handleOpenAddFundsModal = () => setIsAddFundsModalOpen(true);
   const handleCloseAddFundsModal = () => setIsAddFundsModalOpen(false);
 
-
-  const handleStartKyc = () => {
-    setUser(prev => ({ ...prev, kycStatus: 'pending' }));
+  const handleSubmitKyc = () => {
+    setUser(prev => ({ ...prev, kyc: { ...prev.kyc, status: 'pending' }}));
     backendState.addTransaction({
         type: 'KYC',
         status: 'PENDING',
-        details: `KYC verification submitted for ${user.walletAddress}`
+        details: `Full KYC verification submitted for ${user.walletAddress}`
     });
-    addToast("KYC verification process started.");
+    addToast("Full KYC verification process started.");
   };
 
   const handleStartUpiMandate = () => {
@@ -117,14 +156,14 @@ const App: React.FC = () => {
   useEffect(() => {
     // Process KYC Transactions
     const kycTx = backendState.transactions.find(
-      (tx: TransactionEvent) => tx.type === 'KYC' && tx.status !== 'PENDING' && user.kycStatus === 'pending'
+      (tx: TransactionEvent) => tx.type === 'KYC' && tx.status !== 'PENDING' && user.kyc.status === 'pending'
     );
     if (kycTx) {
       if (kycTx.status === 'SUCCESS') {
-        setUser(prev => ({ ...prev, kycStatus: 'verified' }));
+        setUser(prev => ({ ...prev, kyc: { status: 'verified', aadhaar: 'verified', pan: 'verified', bank: 'verified' } }));
         addToast("KYC Verification Successful!", 'success');
       } else {
-        setUser(prev => ({ ...prev, kycStatus: 'unverified' }));
+        setUser(prev => ({ ...prev, kyc: initialKycState }));
         addToast("KYC Verification Failed. Please try again.", 'error');
       }
     }
@@ -161,11 +200,12 @@ const App: React.FC = () => {
         addToast(`Wallet funded successfully.`, 'success');
     }
 
-  }, [backendState.transactions, user.kycStatus, user.upiAutopay.status, addToast, user.walletBalance]);
+  }, [backendState.transactions, user.kyc.status, user.upiAutopay.status, addToast, user.walletBalance]);
 
 
   const handleTrade = useCallback((bond: Bond, quantity: number, tradeType: 'buy' | 'sell') => {
-    if (user.kycStatus !== 'verified') {
+    // In a production app, ALL of this logic would be executed on a secure backend server.
+    if (user.kyc.status !== 'verified') {
         addToast("Please complete KYC verification before trading.", "error");
         return;
     }
@@ -218,16 +258,16 @@ const App: React.FC = () => {
     });
 
     addToast(`${tradeType.toUpperCase()} order for ${bond.name.split(' ')[0]} submitted!`);
-  }, [user.walletBalance, user.kycStatus, addToast, backendState]);
+  }, [user.walletBalance, user.kyc.status, addToast, backendState]);
 
   const bondsWithLiveData = useMemo(() => 
-    BONDS.map(b => backendState.liveBondData[b.id] || b), 
-  [backendState.liveBondData]);
+    bonds.map(b => backendState.liveBondData[b.id] || b), 
+  [backendState.liveBondData, bonds]);
 
-  const showUpiBanner = user.kycStatus === 'verified' && user.upiAutopay.status !== 'active' && user.walletBalance < user.upiAutopay.threshold;
+  const showUpiBanner = user.kyc.status === 'verified' && user.upiAutopay.status !== 'active' && user.walletBalance < user.upiAutopay.threshold;
 
   const renderPage = () => {
-    const pageProps = { navigate, user, handleTrade, userPortfolio, addToast, backendState, isContingencyMode, onOpenAddFunds: handleOpenAddFundsModal };
+    const pageProps = { navigate, user, handleTrade, userPortfolio, addToast, backendState, isContingencyMode, onOpenAddFunds: handleOpenAddFundsModal, bonds };
 
     switch (currentView.page) {
       case 'dashboard':
@@ -239,11 +279,13 @@ const App: React.FC = () => {
       case 'bondDetail':
         return currentView.bondId ? <BondDetail bondId={currentView.bondId} {...pageProps} /> : <Marketplace {...pageProps} bonds={bondsWithLiveData} />;
       case 'system-analytics':
-        return <SystemAnalytics backendState={backendState} />;
+        return <SystemAnalytics backendState={backendState} bonds={bonds} />;
       case 'integrations':
         return <Integrations />;
       case 'hardware-acceleration':
         return <HardwareAcceleration />;
+      case 'profile-settings':
+        return <ProfileSettings user={user} onOpenUpiModal={handleOpenUpiModal} onOpenAddFundsModal={handleOpenAddFundsModal} />;
       default:
         return <Dashboard {...pageProps} topMovers={backendState.topMovers} />;
     }
@@ -251,6 +293,14 @@ const App: React.FC = () => {
 
   if (!user.isConnected) {
     return <LoginModal onConnect={handleConnectWallet} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
   }
 
   return (
@@ -267,13 +317,13 @@ const App: React.FC = () => {
         />
         {isContingencyMode && <ContingencyBanner />}
         <main className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto">
-          {user.kycStatus !== 'verified' && (
-              <KycBanner status={user.kycStatus} onStartKyc={handleOpenKycModal} />
+          {user.kyc.status !== 'verified' && (
+              <KycBanner status={user.kyc.status} onStartKyc={handleOpenKycModal} />
           )}
           {showUpiBanner && (
               <UpiBanner status={user.upiAutopay.status} onStartUpi={handleOpenUpiModal} />
           )}
-          {isKycModalOpen && <KycModal onClose={handleCloseKycModal} onKycSubmit={handleStartKyc} />}
+          {isKycModalOpen && <KycModal onClose={handleCloseKycModal} onKycSubmit={handleSubmitKyc} />}
           {isUpiModalOpen && <UpiMandateModal onClose={handleCloseUpiModal} onUpiSubmit={handleStartUpiMandate} />}
           {isAddFundsModalOpen && <AddFundsModal onClose={handleCloseAddFundsModal} onAddFunds={handleAddFunds} />}
           {renderPage()}

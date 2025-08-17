@@ -19,7 +19,7 @@ const DpiOutageTest: React.FC<DpiOutageTestProps> = ({ backendState }) => {
                 <Icons.cloudSlash className="h-8 w-8 text-brand-red" />
                 <div>
                     <h2 className="text-xl font-bold text-white">DPI Service Outage</h2>
-                    <p className="text-sm text-brand-text-secondary">Simulating a failure of the Aadhaar e-KYC verification service.</p>
+                    <p className="text-sm text-brand-text-secondary">Simulating a failure of a key component of the India Stack, such as Aadhaar e-KYC or DigiLocker for PAN verification.</p>
                 </div>
             </div>
 

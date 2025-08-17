@@ -4,7 +4,7 @@ import Card from './shared/Card';
 import { Icons } from './Icons';
 
 interface KycBannerProps {
-    status: User['kycStatus'];
+    status: User['kyc']['status'];
     onStartKyc: () => void;
 }
 
@@ -21,7 +21,7 @@ const KycBanner: React.FC<KycBannerProps> = ({ status, onStartKyc }) => {
                         <p className="text-brand-text-secondary text-sm">
                             {status === 'pending' 
                                 ? 'Your identity is being verified via our DPI partner. This may take a moment.' 
-                                : "To enable trading, please complete your one-time identity verification using Aadhaar e-KYC via India's DPI Stack."}
+                                : "To enable trading, please complete your one-time identity verification using Aadhaar, PAN, and Bank details via India's DPI Stack."}
                         </p>
                     </div>
                 </div>

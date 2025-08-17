@@ -20,14 +20,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ onConnect }) => {
           className="w-full bg-brand-primary text-black font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity duration-300 flex items-center justify-center space-x-3 text-lg"
         >
           <Icons.wallet />
-          <span>Connect Wallet</span>
+          <span>Connect Wallet (Simulation)</span>
         </button>
         <div className="flex items-center justify-center space-x-2 text-xs text-brand-text-secondary mt-6">
           <Icons.shield className="h-4 w-4 text-brand-primary" />
           <span>Secure Settlement via Hedera Hashgraph DLT</span>
         </div>
         <p className="text-xs text-brand-text-secondary mt-2">
-          This is a prototype and does not use real funds.
+          This is a prototype. The wallet connection is simulated and does not use real funds.
         </p>
       </div>
     </div>

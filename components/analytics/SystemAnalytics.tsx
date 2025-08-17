@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import Card from '../shared/Card';
 import InteractiveArchitectureDiagram from './InteractiveArchitectureDiagram';
 import LiveTransactionFeed from './LiveTransactionFeed';
 import AnalyticsEngineLog from './AnalyticsEngineLog';
-import { ScenarioType } from '../../types';
+import { ScenarioType, Bond } from '../../types';
 import { Icons } from '../Icons';
 import DependencyChecklist from './DependencyChecklist';
 
@@ -20,11 +21,12 @@ import ScalabilityTestView from './tests/ScalabilityTestView';
 
 interface SystemAnalyticsProps {
   backendState: any;
+  bonds: Bond[];
 }
 
 type ActiveTest = 'normal' | 'volatility' | 'api' | 'dlt' | 'dpi' | 'quantum' | 'contingency' | 'scalability';
 
-const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
+const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState, bonds }) => {
   const [activeTab, setActiveTab] = useState('monitoring');
   const [activeTest, setActiveTest] = useState<ActiveTest>('normal');
   const { isContingencyMode, activeScenario } = backendState;
@@ -121,7 +123,7 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
         )}
 
         {activeTab === 'regulatory' && (
-            <RegulatoryDashboard backendState={backendState} />
+            <RegulatoryDashboard backendState={backendState} bonds={bonds} />
         )}
         
         {activeTab === 'testing' && (

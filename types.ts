@@ -37,7 +37,7 @@ export interface PortfolioHolding {
   purchasePrice: number;
 }
 
-export type Page = 'dashboard' | 'marketplace' | 'portfolio' | 'bondDetail' | 'system-analytics' | 'integrations' | 'hardware-acceleration';
+export type Page = 'dashboard' | 'marketplace' | 'portfolio' | 'bondDetail' | 'system-analytics' | 'integrations' | 'hardware-acceleration' | 'profile-settings';
 
 export type ViewState = {
   page: Page;
@@ -48,7 +48,12 @@ export interface User {
   isConnected: boolean;
   walletAddress: string;
   walletBalance: number; // in INR
-  kycStatus: 'unverified' | 'pending' | 'verified';
+  kyc: {
+    status: 'unverified' | 'pending' | 'verified';
+    aadhaar: 'unverified' | 'verified';
+    pan: 'unverified' | 'verified';
+    bank: 'unverified' | 'verified';
+  };
   upiAutopay: {
     status: 'none' | 'pending' | 'active';
     threshold: number;

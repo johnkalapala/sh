@@ -4,11 +4,11 @@ import { generateRegulatoryDashboardSummary } from '../../services/geminiService
 import { Icons } from '../Icons';
 import Spinner from '../shared/Spinner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { BONDS } from '../../constants';
+import { Bond } from '../../types';
 
 const COLORS = ['#58A6FF', '#1F6FEB', '#3FB950', '#D29922', '#A371F7'];
 
-const RegulatoryDashboard: React.FC<{ backendState: any }> = ({ backendState }) => {
+const RegulatoryDashboard: React.FC<{ backendState: any; bonds: Bond[] }> = ({ backendState, bonds }) => {
     const [summary, setSummary] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
@@ -43,26 +43,36 @@ const RegulatoryDashboard: React.FC<{ backendState: any }> = ({ backendState }) 
     }, [analyticsLogs]);
     
      const concentrationData = useMemo(() => {
-        const top5 = [...BONDS].sort((a,b) => b.volume - a.volume).slice(0,5);
+        if (!bonds || bonds.length === 0) return [];
+        const top5 = [...bonds].sort((a,b) => b.volume - a.volume).slice(0,5);
         const top5Volume = top5.reduce((acc, bond) => acc + bond.volume, 0);
-        const otherVolume = BONDS.slice(5).reduce((acc, bond) => acc + bond.volume, 0);
+        const otherVolume = bonds.slice(5).reduce((acc, bond) => acc + bond.volume, 0);
 
         return [
             ...top5.map(bond => ({ name: bond.issuer, value: bond.volume })),
             { name: 'Other', value: otherVolume }
         ];
-    }, []);
+    }, [bonds]);
 
 
     return (
         <div className="space-y-6">
             <Card>
-                <div className="flex items-center space-x-3">
-                    <Icons.shieldNodes className="h-8 w-8 text-purple-400" />
-                    <div>
-                        <h2 className="text-2xl font-bold">Regulatory & Supervisory Dashboard</h2>
-                        <p className="text-brand-text-secondary">Simulated real-time market oversight via the Regulatory Gateway.</p>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <Icons.shieldNodes className="h-8 w-8 text-purple-400" />
+                        <div>
+                            <h2 className="text-2xl font-bold">Regulatory & Supervisory Dashboard</h2>
+                            <p className="text-brand-text-secondary">Simulated real-time market oversight via the Regulatory Gateway.</p>
+                        </div>
                     </div>
+                     <Card className="flex-shrink-0 bg-brand-bg">
+                        <h4 className="text-sm font-semibold text-brand-text-secondary mb-1">Market Compliance</h4>
+                        <div className="flex items-center space-x-2 text-brand-green">
+                            <Icons.shieldCheck className="h-6 w-6" />
+                            <span className="text-lg font-bold">100% KYC Verified</span>
+                        </div>
+                    </Card>
                 </div>
             </Card>
 

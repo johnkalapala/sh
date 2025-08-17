@@ -18,10 +18,11 @@ const pageTitles: Record<Page, string> = {
   bondDetail: 'Bond Analysis',
   'system-analytics': 'System Analytics',
   'integrations': 'Integrations & API',
-  'hardware-acceleration': 'Hardware Acceleration'
+  'hardware-acceleration': 'Hardware Acceleration',
+  'profile-settings': 'Profile & Settings',
 }
 
-const KycStatusIndicator: React.FC<{ status: User['kycStatus'] }> = ({ status }) => {
+const KycStatusIndicator: React.FC<{ status: User['kyc']['status'] }> = ({ status }) => {
     const statusMap = {
         unverified: { text: 'Unverified', icon: <Icons.shield />, color: 'text-brand-red' },
         pending: { text: 'Pending', icon: <Icons.spinner className="animate-spin" />, color: 'text-brand-yellow' },
@@ -66,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, user, onDisconnect, active
           <div className="flex items-center space-x-4">
              <SecurityStatus activeScenario={activeScenario} isContingencyMode={isContingencyMode} />
              <div className="hidden sm:flex items-center space-x-3 bg-brand-bg border border-brand-border px-3 py-1.5 rounded-lg">
-                <KycStatusIndicator status={user.kycStatus} />
+                <KycStatusIndicator status={user.kyc.status} />
                 <div className="w-px h-4 bg-brand-border"></div>
                 <UpiAutopayIndicator status={user.upiAutopay.status} />
              </div>
