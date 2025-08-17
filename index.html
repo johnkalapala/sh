@@ -5,6 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QuantumBond Exchange</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,20 +15,20 @@
         theme: {
           extend: {
             colors: {
-              'brand-bg': '#0D1117',
-              'brand-surface': '#161B22',
-              'brand-border': '#30363D',
-              'brand-primary': '#58A6FF',
-              'brand-secondary': '#1F6FEB',
-              'brand-text': '#C9D1D9',
-              'brand-text-secondary': '#8B949E',
-              'brand-green': '#3FB950',
-              'brand-red': '#F85149',
-              'brand-yellow': '#D29922',
+              'brand-bg': '#18181b',
+              'brand-surface': '#27272a',
+              'brand-border': '#3f3f46',
+              'brand-primary': '#f59e0b',
+              'brand-secondary': '#d97706',
+              'brand-text': '#f4f4f5',
+              'brand-text-secondary': '#a1a1aa',
+              'brand-green': '#22c55e',
+              'brand-red': '#ef4444',
+              'brand-yellow': '#eab308',
             },
             fontFamily: {
-              sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+              sans: ['"IBM Plex Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+              mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
             },
              keyframes: {
               'toast-in': {
@@ -39,24 +42,24 @@
                 '100%': { 'motion-offset': '100%', opacity: '0' },
               },
                'glow': {
-                '0%, 100%': { 'box-shadow': '0 0 5px #F85149, 0 0 10px #F85149' },
-                '50%': { 'box-shadow': '0 0 15px #F85149, 0 0 20px #F85149' },
+                '0%, 100%': { 'box-shadow': '0 0 5px #ef4444, 0 0 10px #ef4444' },
+                '50%': { 'box-shadow': '0 0 15px #ef4444, 0 0 20px #ef4444' },
               },
               'security-glow': {
-                '0%, 100%': { 'text-shadow': '0 0 3px #58A6FF' },
-                '50%': { 'text-shadow': '0 0 8px #58A6FF' },
+                '0%, 100%': { 'text-shadow': '0 0 3px #f59e0b' },
+                '50%': { 'text-shadow': '0 0 8px #f59e0b' },
               },
               'quantum-glow': {
-                '0%, 100%': { filter: 'drop-shadow(0 0 4px rgba(47, 129, 247, 0.7))' },
-                '50%': { filter: 'drop-shadow(0 0 8px rgba(47, 129, 247, 1))' },
+                '0%, 100%': { filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.7))' },
+                '50%': { filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 1))' },
               },
               'compute-pulse': {
-                'from': { transform: 'scaleY(0.1)', 'background-color': '#1F6FEB' },
-                'to': { transform: 'scaleY(1)', 'background-color': '#58A6FF' }
+                'from': { transform: 'scaleY(0.1)', 'background-color': '#d97706' },
+                'to': { transform: 'scaleY(1)', 'background-color': '#f59e0b' }
               },
               'quantum-nucleus-pulse': {
-                '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)', 'box-shadow': '0 0 10px #58A6FF', opacity: '1' },
-                '50%': { transform: 'translate(-50%, -50%) scale(1.05)', 'box-shadow': '0 0 25px #58A6FF, 0 0 40px #1F6FEB', opacity: '0.9' },
+                '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)', 'box-shadow': '0 0 10px #f59e0b', opacity: '1' },
+                '50%': { transform: 'translate(-50%, -50%) scale(1.05)', 'box-shadow': '0 0 25px #f59e0b, 0 0 40px #d97706', opacity: '0.9' },
               },
               'membrane-pulse': {
                 '0%, 100%': { 'stroke-opacity': '0.3', 'stroke-width': '3px' },
@@ -88,7 +91,7 @@
         font-weight: 600;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
-        color: #C9D1D9;
+        color: #f4f4f5; /* text */
       }
        .gemini-analysis ul {
         list-style-type: disc;
@@ -98,7 +101,7 @@
         margin-bottom: 0.25rem;
       }
        .gemini-analysis strong {
-        color: #58A6FF;
+        color: #f59e0b; /* primary */
       }
        /* Toast Notifications */
       .toast-container {
@@ -116,14 +119,14 @@
         padding: 1rem;
         border-radius: 0.5rem;
         color: white;
-        background-color: #161B22;
+        background-color: #27272a; /* surface */
         min-width: 300px;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         animation: toast-in 0.5s forwards;
-        border: 1px solid #30363D;
+        border: 1px solid #3f3f46; /* border */
       }
-      .toast.success { border-left: 4px solid #3FB950; }
-      .toast.error { border-left: 4px solid #F85149; }
+      .toast.success { border-left: 4px solid #22c55e; } /* green */
+      .toast.error { border-left: 4px solid #ef4444; } /* red */
 
       /* Architecture Diagram Styles */
       .arch-container {
@@ -133,8 +136,8 @@
       }
       .arch-block {
         position: absolute;
-        background-color: #161B22;
-        border: 1px solid #30363D;
+        background-color: #27272a; /* surface */
+        border: 1px solid #3f3f46; /* border */
         padding: 8px 12px;
         display: flex;
         flex-direction: column;
@@ -145,13 +148,13 @@
         transition: all 0.5s ease-in-out;
         z-index: 10;
       }
-      .arch-block .title { font-weight: 600; color: #C9D1D9; }
-      .arch-block .desc { font-size: 0.7rem; color: #8B949E; }
+      .arch-block .title { font-weight: 600; color: #f4f4f5; } /* text */
+      .arch-block .desc { font-size: 0.7rem; color: #a1a1aa; } /* text-secondary */
 
       /* Bio-Quantum Mode Styles */
       .bio-quantum .arch-block { border-radius: 9999px; width: 130px; height: 130px; }
       .bio-quantum #arch-OrderMatch { 
-          width: 170px; height: 170px; border-width: 2px; border-color: #58A6FF;
+          width: 170px; height: 170px; border-width: 2px; border-color: #f59e0b; /* primary */
           animation: quantum-nucleus-pulse 3s ease-in-out infinite; 
       }
       .bio-quantum .arch-block.organelle {
@@ -161,18 +164,18 @@
       
       /* Standard Mode Styles */
       .standard .arch-block { border-radius: 6px; }
-      .standard .arch-block.status-standard { border-color: #8B949E; }
+      .standard .arch-block.status-standard { border-color: #a1a1aa; } /* text-secondary */
       .standard #arch-Pricing { animation: none; }
 
 
       .arch-block.status-down {
         animation: glow-red 1.5s ease-in-out infinite;
-        border-color: #F85149;
+        border-color: #ef4444; /* red */
       }
-      .arch-block .metric-value { color: #58A6FF; font-weight: bold; }
-      .arch-block.status-ok .title { color: #3FB950; }
-      .arch-block.status-degraded .title { color: #D29922; }
-      .arch-block.status-down .title { color: #F85149; }
+      .arch-block .metric-value { color: #f59e0b; font-weight: bold; } /* primary */
+      .arch-block.status-ok .title { color: #22c55e; } /* green */
+      .arch-block.status-degraded .title { color: #eab308; } /* yellow */
+      .arch-block.status-down .title { color: #ef4444; } /* red */
 
       .svg-overlay {
         position: absolute;
@@ -208,21 +211,21 @@
         height: 50px;
         width: 100%;
         padding: 4px;
-        background-color: #0D1117;
+        background-color: #18181b; /* bg */
         border-radius: 4px;
       }
       .compute-bar {
         flex-grow: 1;
-        background-color: #303D;
+        background-color: #3f3f46; /* border */
         animation: compute-pulse 1s ease-in-out infinite alternate;
       }
       .status-dot {
         height: 8px;
         width: 8px;
-        background-color: #3FB950;
+        background-color: #22c55e; /* green */
         border-radius: 50%;
         display: inline-block;
-        box-shadow: 0 0 5px #3FB950;
+        box-shadow: 0 0 5px #22c55e; /* green */
       }
 
     </style>
@@ -234,7 +237,8 @@
     "react": "https://esm.sh/react@18.3.1",
     "react-dom": "https://esm.sh/react-dom@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "react-dom/": "https://esm.sh/react-dom@18.3.1/"
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.14.0"
   }
 }
 </script>

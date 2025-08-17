@@ -6,7 +6,7 @@ import Spinner from '../shared/Spinner';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Bond } from '../../types';
 
-const COLORS = ['#58A6FF', '#1F6FEB', '#3FB950', '#D29922', '#A371F7'];
+const COLORS = ['#f59e0b', '#d97706', '#22c55e', '#a855f7', '#3b82f6'];
 
 const RegulatoryDashboard: React.FC<{ backendState: any; bonds: Bond[] }> = ({ backendState, bonds }) => {
     const [summary, setSummary] = useState('');
@@ -95,7 +95,7 @@ const RegulatoryDashboard: React.FC<{ backendState: any; bonds: Bond[] }> = ({ b
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
                             <Legend />
                         </PieChart>
                     </ResponsiveContainer>

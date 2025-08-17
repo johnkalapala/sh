@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType, User } from '../types';
 import { INITIAL_SYSTEM_METRICS, INITIAL_USER_WALLET_BALANCE } from '../constants';
@@ -13,6 +14,7 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
     );
     const [topMovers, setTopMovers] = useState<Bond[]>([]);
     const [activeScenario, setActiveScenario] = useState<ScenarioType>('NORMAL');
+    const [isCircuitBreakerTripped, setIsCircuitBreakerTripped] = useState(false);
     const [simulatedWalletBalance, setSimulatedWalletBalance] = useState(INITIAL_USER_WALLET_BALANCE);
 
     const isContingencyMode = activeScenario === 'CONTINGENCY';
@@ -132,6 +134,10 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
             const newMetrics: SystemMetrics = JSON.parse(JSON.stringify(metrics));
             let transactionChance = 0.5;
 
+            if (!isCircuitBreakerTripped) {
+                newMetrics.OrderMatch.value = INITIAL_SYSTEM_METRICS.OrderMatch.value;
+            }
+
             switch(activeScenario) {
                 case 'SCALE_TEST': {
                     const baseTps = 80000;
@@ -163,17 +169,30 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
                 case 'VOLATILITY_SPIKE':
                     transactionChance = 0.9;
                     newMetrics.OrderMatch.value = 7500 + Math.random() * 2000;
-                    if (Math.random() < 0.3) addAnalyticsLog({ service: 'Swarm', message: 'Liquidity Swarm activated. Re-routing order flow.' });
+                    
+                    let significantSwings = 0;
                     setLiveBondData(prevData => {
                         const newData = { ...prevData };
                         for (let i = 0; i < 200; i++) {
                             const bond = initialBonds[Math.floor(Math.random() * initialBonds.length)];
-                            const change = (Math.random() - 0.5) * 0.25;
+                            const change = (Math.random() - 0.5) * 0.5; // Increased volatility for testing
+                            if(Math.abs(change) > 0.2) significantSwings++;
                             const newPrice = Math.max(80, (newData[bond.id]?.currentPrice || bond.currentPrice) * (1 + change / 100));
                             if(newData[bond.id]) newData[bond.id] = { ...newData[bond.id], currentPrice: newPrice };
                         }
                         return newData;
                     });
+                    
+                    if (!isCircuitBreakerTripped && significantSwings > 30) {
+                        setIsCircuitBreakerTripped(true);
+                        addAnalyticsLog({ service: 'CircuitBreaker', message: 'Homeostasis protocol triggered: Extreme volatility detected. Halting trading.' });
+                        
+                        setTimeout(() => {
+                            setIsCircuitBreakerTripped(false);
+                            addAnalyticsLog({ service: 'CircuitBreaker', message: 'Market stabilizing. Resetting circuit breaker. Trading resumed.' });
+                        }, 15000); // Breaker active for 15 seconds
+                    }
+
                     break;
                 case 'API_GATEWAY_OVERLOAD':
                     newMetrics.APIGW.status = Math.random() < 0.2 ? 'Down' : 'Degraded';
@@ -207,6 +226,14 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
                      }
                     break;
             }
+            
+            if (isCircuitBreakerTripped) {
+                newMetrics.OrderMatch.value = 0;
+                newMetrics.OrderMatch.status = 'Degraded';
+                addAnalyticsLog({ service: 'Swarm', message: 'Trading halted. Buffering order flow.' });
+            } else {
+                 newMetrics.OrderMatch.status = 'Operational';
+            }
 
             SERVICE_NAMES.forEach(name => {
                 if (newMetrics[name] && newMetrics[name].status === 'Operational' && activeScenario !== 'CONTINGENCY' && activeScenario !== 'SCALE_TEST') {
@@ -236,9 +263,9 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
         }, 1800);
 
         return () => clearInterval(interval);
-    }, [initialBonds, addTransaction, addAnalyticsLog, activeScenario, metrics]);
+    }, [initialBonds, addTransaction, addAnalyticsLog, activeScenario, metrics, isCircuitBreakerTripped]);
 
-    return { metrics, transactions, analyticsLogs, liveBondData, topMovers, runScenario, activeScenario, isContingencyMode, addTransaction, updateSimulatedWalletBalance };
+    return { metrics, transactions, analyticsLogs, liveBondData, topMovers, runScenario, activeScenario, isContingencyMode, addTransaction, updateSimulatedWalletBalance, isCircuitBreakerTripped };
 };
 
 export { useBackendSimulator };

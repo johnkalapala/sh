@@ -106,6 +106,11 @@ export interface TransactionEvent {
 export interface AnalyticsLog {
   id: string;
   timestamp: string;
-  service: 'Pricing' | 'AIS' | 'Swarm' | 'AggregationSvc';
+  service: 'Pricing' | 'AIS' | 'Swarm' | 'AggregationSvc' | 'CircuitBreaker';
   message: string;
+}
+
+export interface PersistedState {
+  user: User;
+  portfolio: PortfolioHolding[];
 }

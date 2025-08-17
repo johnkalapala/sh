@@ -17,8 +17,6 @@ interface BondDetailProps {
   user: User;
   addToast: (message: string, type?: 'success' | 'error') => void;
   backendState: any;
-  isContingencyMode: boolean;
-  bonds: Bond[];
 }
 
 const generatePriceHistory = (basePrice: number) => {
@@ -91,11 +89,11 @@ const LiquidityImpactCard: React.FC<{ bond: Bond }> = ({ bond }) => {
                     <p className="text-center text-sm text-brand-text-secondary mb-2">Avg. Daily Volume</p>
                     <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={volumeData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="name" fontSize={12} stroke="#8B949E"/>
-                            <YAxis fontSize={12} stroke="#8B949E"/>
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
-                            <Bar dataKey="Avg Daily Volume (₹ Cr)" fill="#58A6FF" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                            <XAxis dataKey="name" fontSize={12} stroke="#a1a1aa"/>
+                            <YAxis fontSize={12} stroke="#a1a1aa"/>
+                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
+                            <Bar dataKey="Avg Daily Volume (₹ Cr)" fill="#f59e0b" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -103,11 +101,11 @@ const LiquidityImpactCard: React.FC<{ bond: Bond }> = ({ bond }) => {
                     <p className="text-center text-sm text-brand-text-secondary mb-2">Investor Base Growth</p>
                      <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={investorData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                             <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="name" fontSize={12} stroke="#8B949E"/>
-                            <YAxis fontSize={12} stroke="#8B949E"/>
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
-                            <Bar dataKey="Investor Base" fill="#3FB950" />
+                             <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                            <XAxis dataKey="name" fontSize={12} stroke="#a1a1aa"/>
+                            <YAxis fontSize={12} stroke="#a1a1aa"/>
+                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
+                            <Bar dataKey="Investor Base" fill="#22c55e" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -117,20 +115,21 @@ const LiquidityImpactCard: React.FC<{ bond: Bond }> = ({ bond }) => {
 };
 
 
-const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState, isContingencyMode, bonds }) => {
+const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState }) => {
+  const { isContingencyMode, bonds, isCircuitBreakerTripped } = backendState;
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
   const bond = useMemo(() => {
-    const staticBond = bonds.find(b => b.id === bondId);
-    return backendState.liveBondData[bondId] || staticBond;
-  }, [bondId, backendState.liveBondData, bonds]);
+    return bonds.find((b: Bond) => b.id === bondId);
+  }, [bondId, bonds]);
   
   if (!bond) {
     return (
       <div>
         <h2 className="text-2xl text-red-500">Bond not found</h2>
+        <p className="text-brand-text-secondary">The live market data may have changed. Please return to the marketplace.</p>
         <button onClick={() => navigate({ page: 'marketplace' })} className="text-brand-primary mt-4">
           &larr; Back to Marketplace
         </button>
@@ -164,9 +163,10 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
         </div>
         <button 
             onClick={() => setIsTradeModalOpen(true)}
-            className="bg-brand-primary text-black font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity"
+            disabled={isCircuitBreakerTripped}
+            className="bg-brand-primary text-black font-semibold py-2 px-6 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-            Trade
+            {isCircuitBreakerTripped ? 'Halted' : 'Trade'}
         </button>
       </div>
 
@@ -193,15 +193,15 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
                 <AreaChart data={priceHistory}>
                     <defs>
                         <linearGradient id="colorPriceDetail" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#58A6FF" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#58A6FF" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                    <XAxis dataKey="day" stroke="#8B949E" fontSize={12} />
-                    <YAxis stroke="#8B949E" domain={['dataMin - 2', 'dataMax + 2']} fontSize={12} />
-                    <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
-                    <Area type="monotone" dataKey="price" stroke="#58A6FF" fill="url(#colorPriceDetail)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                    <XAxis dataKey="day" stroke="#a1a1aa" fontSize={12} />
+                    <YAxis stroke="#a1a1aa" domain={['dataMin - 2', 'dataMax + 2']} fontSize={12} />
+                    <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
+                    <Area type="monotone" dataKey="price" stroke="#f59e0b" fill="url(#colorPriceDetail)" />
                 </AreaChart>
             </ResponsiveContainer>
           </Card>
@@ -245,7 +245,7 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
         )}
       </Card>
 
-       {isTradeModalOpen && <TradeModal bond={bond} onClose={() => setIsTradeModalOpen(false)} handleTrade={handleTrade} user={user} addToast={addToast} isContingencyMode={isContingencyMode} />}
+       {isTradeModalOpen && <TradeModal bond={bond} onClose={() => setIsTradeModalOpen(false)} handleTrade={handleTrade} user={user} addToast={addToast} isContingencyMode={isContingencyMode} isCircuitBreakerTripped={isCircuitBreakerTripped} />}
     </div>
   );
 };

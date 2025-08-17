@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateMarketNewsAnalysis } from '../services/geminiService';
 import { Icons } from './Icons';

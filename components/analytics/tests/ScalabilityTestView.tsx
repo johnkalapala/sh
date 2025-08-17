@@ -15,7 +15,7 @@ const TpsGauge: React.FC<{ value: number; max: number }> = ({ value, max }) => {
     return (
         <div className="relative w-full max-w-xs mx-auto" style={{ paddingBottom: '50%' }}>
             <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 200 100">
-                <path d="M 10 100 A 90 90 0 0 1 190 100" strokeWidth="20" stroke="#30363D" fill="none" />
+                <path d="M 10 100 A 90 90 0 0 1 190 100" strokeWidth="20" stroke="#3f3f46" fill="none" />
                 <path 
                     d="M 10 100 A 90 90 0 0 1 190 100" 
                     strokeWidth="20" 
@@ -27,10 +27,10 @@ const TpsGauge: React.FC<{ value: number; max: number }> = ({ value, max }) => {
                 />
                  <line
                     x1="100" y1="100" x2="100" y2="20"
-                    stroke="#C9D1D9" strokeWidth="3"
+                    stroke="#f4f4f5" strokeWidth="3"
                     style={{ transformOrigin: '100px 100px', transform: `rotate(${rotation}deg)`, transition: 'transform 0.5s' }}
                 />
-                <circle cx="100" cy="100" r="5" fill="#C9D1D9" />
+                <circle cx="100" cy="100" r="5" fill="#f4f4f5" />
             </svg>
             <div className="absolute bottom-0 w-full text-center">
                 <p className="text-3xl font-mono font-bold text-white">{(value/1000).toFixed(1)}k</p>
@@ -92,13 +92,13 @@ const ScalabilityTestView: React.FC<ScalabilityTestViewProps> = ({ backendState 
                     <h3 className="text-lg font-semibold mb-2 text-center">P99 Order Matching Latency (ms)</h3>
                      <ResponsiveContainer width="100%" height={200}>
                         <LineChart data={latencyData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="time" stroke="#8B949E" fontSize={10} />
-                            <YAxis stroke="#8B949E" domain={[0, 40]} />
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }} />
-                            <Line type="monotone" dataKey="shard1" name="Shard 1" stroke="#58A6FF" strokeWidth={2} dot={false} />
-                            <Line type="monotone" dataKey="shard2" name="Shard 2" stroke="#3FB950" strokeWidth={2} dot={false} />
-                            <Line type="monotone" dataKey="shard3" name="Shard 3" stroke="#D29922" strokeWidth={2} dot={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                            <XAxis dataKey="time" stroke="#a1a1aa" fontSize={10} />
+                            <YAxis stroke="#a1a1aa" domain={[0, 40]} />
+                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }} />
+                            <Line type="monotone" dataKey="shard1" name="Shard 1" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="shard2" name="Shard 2" stroke="#22c55e" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="shard3" name="Shard 3" stroke="#eab308" strokeWidth={2} dot={false} />
                         </LineChart>
                     </ResponsiveContainer>
                  </Card>

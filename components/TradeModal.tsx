@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Bond, User } from '../types';
 import Spinner from './shared/Spinner';
@@ -10,10 +11,11 @@ interface TradeModalProps {
   user: User;
   addToast: (message: string, type?: 'success' | 'error') => void;
   isContingencyMode: boolean;
+  isCircuitBreakerTripped: boolean;
 }
 
 
-const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, user, isContingencyMode }) => {
+const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, user, isContingencyMode, isCircuitBreakerTripped }) => {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState(100000); // Default 1 Lakh
   
@@ -51,7 +53,8 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
   const fairValueLabel = isContingencyMode ? 'Standard Fair Value' : 'Quantum Fair Value';
   const fairValueColor = isContingencyMode ? 'text-brand-yellow' : 'text-brand-primary';
 
-  const canTrade = user.kyc.status === 'verified';
+  const canTrade = user.kyc.status === 'verified' && !isCircuitBreakerTripped;
+  const cannotTradeReason = isCircuitBreakerTripped ? 'Trading is temporarily halted due to extreme market volatility.' : 'Please complete KYC verification to enable trading.';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
@@ -104,7 +107,7 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
 
             {!canTrade && (
                  <div className="text-xs text-center text-brand-yellow mt-4 p-3 bg-brand-yellow/10 rounded-lg border border-brand-yellow/50">
-                    <p><strong>Action Required:</strong> Please complete KYC verification to enable trading.</p>
+                    <p><strong>Trading Disabled:</strong> {cannotTradeReason}</p>
                 </div>
             )}
             
@@ -118,7 +121,7 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
                 disabled={insufficientFunds || amount <= 0 || !canTrade}
                 className={`w-full p-3 mt-4 rounded-md font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tradeType === 'buy' ? 'bg-brand-green text-black hover:opacity-90' : 'bg-brand-red text-white hover:opacity-90'}`}
             >
-                Confirm {tradeType === 'buy' ? 'Buy' : 'Sell'} Order
+                {isCircuitBreakerTripped ? 'Trading Halted' : `Confirm ${tradeType === 'buy' ? 'Buy' : 'Sell'} Order`}
             </button>
            </div>
         </div>

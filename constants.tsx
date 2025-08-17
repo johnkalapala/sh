@@ -1,3 +1,4 @@
+
 import { SystemMetrics } from './types';
 
 export const INITIAL_USER_WALLET_BALANCE = 1000000; // 10 Lakh INR

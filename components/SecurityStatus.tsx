@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Icons } from './Icons';
 import { ScenarioType } from '../types';
@@ -5,9 +6,10 @@ import { ScenarioType } from '../types';
 interface SecurityStatusProps {
     activeScenario: ScenarioType;
     isContingencyMode: boolean;
+    isCircuitBreakerTripped: boolean;
 }
 
-const SecurityStatus: React.FC<SecurityStatusProps> = ({ activeScenario, isContingencyMode }) => {
+const SecurityStatus: React.FC<SecurityStatusProps> = ({ activeScenario, isContingencyMode, isCircuitBreakerTripped }) => {
     const [integrity, setIntegrity] = useState(99.98);
 
     useEffect(() => {
@@ -26,6 +28,18 @@ const SecurityStatus: React.FC<SecurityStatusProps> = ({ activeScenario, isConti
     }, []);
 
     const isUnderAttack = activeScenario === 'API_GATEWAY_OVERLOAD';
+
+    if (isCircuitBreakerTripped) {
+         return (
+             <div 
+                className={`hidden lg:flex items-center space-x-3 bg-brand-red/20 border border-brand-red px-3 py-1.5 rounded-lg animate-pulse`} 
+                title="Trading halted due to extreme market volatility."
+            >
+                <Icons.pause className="text-brand-red h-6 w-6" />
+                <div className="text-sm font-bold text-brand-red">TRADING HALTED</div>
+            </div>
+        );
+    }
 
     if (isContingencyMode) {
         return (

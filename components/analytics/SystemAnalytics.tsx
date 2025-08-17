@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Card from '../shared/Card';
 import InteractiveArchitectureDiagram from './InteractiveArchitectureDiagram';
@@ -21,15 +20,14 @@ import ScalabilityTestView from './tests/ScalabilityTestView';
 
 interface SystemAnalyticsProps {
   backendState: any;
-  bonds: Bond[];
 }
 
 type ActiveTest = 'normal' | 'volatility' | 'api' | 'dlt' | 'dpi' | 'quantum' | 'contingency' | 'scalability';
 
-const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState, bonds }) => {
+const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
   const [activeTab, setActiveTab] = useState('monitoring');
   const [activeTest, setActiveTest] = useState<ActiveTest>('normal');
-  const { isContingencyMode, activeScenario } = backendState;
+  const { isContingencyMode, activeScenario, bonds } = backendState;
 
   const handleTestSelection = (test: ActiveTest, scenario: ScenarioType) => {
       setActiveTest(test);

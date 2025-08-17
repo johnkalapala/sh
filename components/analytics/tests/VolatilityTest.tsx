@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Icons } from '../../Icons';
 import AnalyticsEngineLog from '../AnalyticsEngineLog';
+import Card from '../../shared/Card';
 
 interface VolatilityTestProps {
   backendState: any;
@@ -9,6 +10,7 @@ interface VolatilityTestProps {
 
 const VolatilityTest: React.FC<VolatilityTestProps> = ({ backendState }) => {
     const [performanceData, setPerformanceData] = useState<{ time: string; ops: number }[]>([]);
+    const { isCircuitBreakerTripped } = backendState;
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -24,7 +26,7 @@ const VolatilityTest: React.FC<VolatilityTestProps> = ({ backendState }) => {
         return () => clearInterval(interval);
     }, [backendState.metrics.OrderMatch.value]);
 
-    const swarmLogs = backendState.analyticsLogs.filter((l: any) => l.service === 'Swarm');
+    const swarmLogs = backendState.analyticsLogs.filter((l: any) => l.service === 'Swarm' || l.service === 'CircuitBreaker');
 
     return (
         <div>
@@ -41,17 +43,22 @@ const VolatilityTest: React.FC<VolatilityTestProps> = ({ backendState }) => {
                     <h3 className="text-lg font-semibold mb-2 text-center">Matching Engine Throughput (ops/sec)</h3>
                     <ResponsiveContainer width="100%" height={250}>
                         <LineChart data={performanceData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="time" stroke="#8B949E" fontSize={10} />
-                            <YAxis stroke="#8B949E" domain={[0, 10000]} />
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }} />
-                            <Line type="monotone" dataKey="ops" name="Ops/sec" stroke="#D29922" strokeWidth={2} dot={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                            <XAxis dataKey="time" stroke="#a1a1aa" fontSize={10} />
+                            <YAxis stroke="#a1a1aa" domain={[0, 10000]} />
+                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }} />
+                            <Line type="monotone" dataKey="ops" name="Ops/sec" stroke="#eab308" strokeWidth={2} dot={false} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold mb-2 text-center">AI Swarm Intelligence Log</h3>
-                    <AnalyticsEngineLog logs={swarmLogs} limit={10} />
+                    <h3 className="text-lg font-semibold mb-2 text-center">Circuit Breaker & Swarm Log</h3>
+                     <Card className={`text-center mb-4 transition-all ${isCircuitBreakerTripped ? 'border-brand-red bg-brand-red/10' : 'border-brand-green bg-brand-green/10'}`}>
+                        <p className="font-bold text-lg">
+                            Circuit Breaker: <span className={isCircuitBreakerTripped ? 'text-brand-red' : 'text-brand-green'}>{isCircuitBreakerTripped ? 'TRIPPED' : 'ARMED'}</span>
+                        </p>
+                    </Card>
+                    <AnalyticsEngineLog logs={swarmLogs} limit={8} />
                 </div>
             </div>
         </div>

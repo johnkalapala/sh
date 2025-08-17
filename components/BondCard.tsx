@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Bond } from '../types';
 import Card from './shared/Card';
@@ -8,6 +9,7 @@ interface BondCardProps {
   onTrade: (bond: Bond) => void;
   onViewDetails: (bondId: string) => void;
   isContingencyMode: boolean;
+  isCircuitBreakerTripped: boolean;
 }
 
 const RatingBadge: React.FC<{ rating: string }> = ({ rating }) => {
@@ -60,7 +62,7 @@ const ScoreIndicator: React.FC<{ score: number }> = ({ score }) => {
     );
 };
 
-const BondCard: React.FC<BondCardProps> = ({ bond, onTrade, onViewDetails, isContingencyMode }) => {
+const BondCard: React.FC<BondCardProps> = ({ bond, onTrade, onViewDetails, isContingencyMode, isCircuitBreakerTripped }) => {
   const fairValue = isContingencyMode ? bond.standardFairValue : bond.aiFairValue;
   const fairValueLabel = isContingencyMode ? 'Standard Fair Value' : 'Quantum Fair Value';
 
@@ -102,9 +104,10 @@ const BondCard: React.FC<BondCardProps> = ({ bond, onTrade, onViewDetails, isCon
       </div>
       <button 
         onClick={() => onTrade(bond)}
-        className="w-full bg-brand-primary text-black py-2 rounded-md font-semibold hover:opacity-90 transition-opacity"
+        disabled={isCircuitBreakerTripped}
+        className="w-full bg-brand-primary text-black py-2 rounded-md font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Trade
+        {isCircuitBreakerTripped ? 'Trading Halted' : 'Trade'}
       </button>
     </Card>
   );

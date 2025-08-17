@@ -42,11 +42,11 @@ const DltCongestionTest: React.FC<DltCongestionTestProps> = ({ backendState }) =
                      <h3 className="text-lg font-semibold mb-2 text-center">DLT Settlement Time (seconds)</h3>
                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={performanceData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="time" stroke="#8B949E" fontSize={10} />
-                            <YAxis stroke="#8B949E" domain={[0, 15]} />
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }} />
-                            <Bar dataKey="settlementTime" name="Settlement Time (s)" fill="#D29922" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                            <XAxis dataKey="time" stroke="#a1a1aa" fontSize={10} />
+                            <YAxis stroke="#a1a1aa" domain={[0, 15]} />
+                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }} />
+                            <Bar dataKey="settlementTime" name="Settlement Time (s)" fill="#eab308" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

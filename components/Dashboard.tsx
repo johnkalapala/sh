@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
-import { generateGeminiAnalysis } from '../services/geminiService';
+import { generateGeminiAnalysis, generateMarketNewsAnalysis } from '../services/geminiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Icons } from './Icons';
 import { ViewState, Bond, TransactionEvent, User } from '../types';
@@ -13,42 +13,6 @@ const marketData = Array.from({ length: 12 }, (_, i) => ({
   name: new Date(0, i).toLocaleString('default', { month: 'short' }),
   value: 1200 + Math.random() * 200 - 100 * Math.sin(i / 2),
 }));
-
-const SystemHealthOverview: React.FC<{ backendState: any; navigate: (v: ViewState) => void }> = ({ backendState, navigate }) => {
-    const metrics = backendState.metrics;
-    const isOk = Object.values(metrics).every((m: any) => m.status === 'Operational');
-    const totalTransactions = backendState.transactions.length;
-
-    return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                    {isOk ? <Icons.status.ok /> : <Icons.status.error />}
-                    <span className="text-brand-text-secondary">Overall Status</span>
-                </div>
-                <span className={`text-sm font-medium ${isOk ? 'text-brand-green' : 'text-brand-red'}`}>{isOk ? 'Operational' : 'Issues Detected'}</span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-brand-text-secondary">API Gateway (req/s)</span>
-                <span className="font-mono text-white">{metrics.APIGW.value.toFixed(0)}</span>
-            </div>
-             <div className="flex items-center justify-between">
-                <span className="text-brand-text-secondary">Matching Engine (ops/s)</span>
-                <span className="font-mono text-white">{metrics.OrderMatch.value.toLocaleString()}</span>
-            </div>
-             <div className="flex items-center justify-between">
-                <span className="text-brand-text-secondary">Total Transactions</span>
-                <span className="font-mono text-white">{totalTransactions}</span>
-            </div>
-            <button
-                onClick={() => navigate({ page: 'system-analytics'})}
-                className="w-full text-center bg-brand-bg hover:bg-brand-border text-brand-primary font-semibold py-2 px-4 rounded-md mt-2 transition-colors"
-            >
-                View System Analytics
-            </button>
-        </div>
-    );
-};
 
 const TopMovers: React.FC<{ movers: Bond[], navigate: (v: ViewState) => void }> = ({ movers, navigate }) => {
     const gainers = movers.filter(m => m.dayChange > 0).sort((a,b) => b.dayChange - a.dayChange).slice(0,3);
@@ -71,13 +35,13 @@ const TopMovers: React.FC<{ movers: Bond[], navigate: (v: ViewState) => void }> 
             <div className="mb-4">
                 <h4 className="font-semibold text-brand-green mb-2">Top Gainers</h4>
                 <div className="space-y-2">
-                    {gainers.map(g => <MoverRow key={g.id} bond={g} />)}
+                    {gainers.length > 0 ? gainers.map(g => <MoverRow key={g.id} bond={g} />) : <p className="text-xs text-brand-text-secondary">No gainers yet.</p>}
                 </div>
             </div>
             <div>
                 <h4 className="font-semibold text-brand-red mb-2">Top Losers</h4>
                  <div className="space-y-2">
-                    {losers.map(l => <MoverRow key={l.id} bond={l} />)}
+                     {losers.length > 0 ? losers.map(l => <MoverRow key={l.id} bond={l} />) : <p className="text-xs text-brand-text-secondary">No losers yet.</p>}
                 </div>
             </div>
         </div>
@@ -87,28 +51,21 @@ const TopMovers: React.FC<{ movers: Bond[], navigate: (v: ViewState) => void }> 
 interface DashboardProps {
   navigate: (view: ViewState) => void;
   backendState: any;
-  topMovers: Bond[];
   user: User;
   onOpenAddFunds: () => void;
-  bonds: Bond[];
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers, user, onOpenAddFunds, bonds }) => {
+const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, user, onOpenAddFunds }) => {
   const [analysis, setAnalysis] = useState<string>('');
   const [liquidityScore, setLiquidityScore] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(true);
   
-  const totalVolume = useMemo(() => {
-    return backendState.transactions
-        .filter((tx: TransactionEvent) => tx.status === 'SUCCESS' && tx.type === 'SETTLEMENT')
-        .reduce((sum: number) => sum + (Math.random() * 500000) + 100000, 0); // Simulate some value
-  }, [backendState.transactions]);
-
+  const { topMovers, bonds, totalVolume } = backendState;
 
   useEffect(() => {
     const fetchAllAnalyses = async () => {
-      setIsLoading(true);
+      setIsLoadingAnalysis(true);
       try {
         const [generalResult, liquidityResult] = await Promise.all([
           generateGeminiAnalysis('general'),
@@ -121,7 +78,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
         setAnalysis("Failed to load market analysis. Please try again later.");
         setLiquidityScore("N/A");
       } finally {
-        setIsLoading(false);
+        setIsLoadingAnalysis(false);
       }
     };
     fetchAllAnalyses();
@@ -129,14 +86,13 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
   
   const [score, text] = useMemo(() => {
     if (!liquidityScore) return ['N/A', 'Loading...'];
-    const cleanedScore = liquidityScore.replace(/\*/g, '');
-    const bracketIndex = cleanedScore.indexOf('(');
+    const bracketIndex = liquidityScore.indexOf('(');
     if (bracketIndex !== -1) {
-        const scorePart = cleanedScore.substring(0, bracketIndex).trim();
-        const textPart = cleanedScore.substring(bracketIndex + 1, cleanedScore.indexOf(')')).trim();
+        const scorePart = liquidityScore.substring(0, bracketIndex).trim();
+        const textPart = liquidityScore.substring(bracketIndex + 1, liquidityScore.indexOf(')')).trim();
         return [scorePart, textPart];
     }
-    return [cleanedScore, ''];
+    return [liquidityScore, ''];
   }, [liquidityScore]);
 
   const liquidityNumericValue = useMemo(() => {
@@ -163,7 +119,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
             <h3 className="text-lg font-semibold text-brand-text-secondary">Active Issues</h3>
           </div>
           <p className="text-3xl font-bold text-white">{bonds.length.toLocaleString()}</p>
-           <p className="text-sm text-brand-text-secondary">+12 new listings</p>
+           <p className="text-sm text-brand-text-secondary">Sourced live from AI</p>
         </Card>
          <Card className="md:col-span-2">
             <WalletAndFunds user={user} onAddFunds={onOpenAddFunds} />
@@ -176,12 +132,12 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
           <h3 className="text-xl font-semibold mb-4">Market Index Performance</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={marketData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-              <XAxis dataKey="name" stroke="#8B949E" />
-              <YAxis stroke="#8B949E" domain={['dataMin - 50', 'dataMax + 50']}/>
-              <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+              <XAxis dataKey="name" stroke="#a1a1aa" />
+              <YAxis stroke="#a1a1aa" domain={['dataMin - 50', 'dataMax + 50']}/>
+              <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }} />
               <Legend />
-              <Line type="monotone" dataKey="value" name="QB Index" stroke="#58A6FF" strokeWidth={2} activeDot={{ r: 8 }} dot={false} />
+              <Line type="monotone" dataKey="value" name="QB Index" stroke="#f59e0b" strokeWidth={2} activeDot={{ r: 8 }} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -191,7 +147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
                   <Icons.liquidity />
                   <h3 className="text-xl font-semibold">Liquidity Score</h3>
                 </div>
-                {isLoading ? <Spinner /> : (
+                {isLoadingAnalysis ? <Spinner /> : (
                   <>
                     <p className="text-4xl font-bold text-white text-center py-2">{score}</p>
                     <p className={`text-sm text-center ${liquidityNumericValue > 70 ? 'text-brand-green' : 'text-brand-yellow'}`}>{text}</p>
@@ -210,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
               <Icons.gemini />
               <h3 className="text-xl font-semibold">Quantum-Bio Analyst</h3>
             </div>
-            {isLoading ? <Spinner /> : (
+            {isLoadingAnalysis ? <Spinner /> : (
               <div className="gemini-analysis text-brand-text-secondary" dangerouslySetInnerHTML={{ __html: analysis }} />
             )}
           </Card>

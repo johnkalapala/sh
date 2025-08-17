@@ -9,9 +9,8 @@ interface MarketplaceProps {
   navigate: (view: ViewState) => void;
   handleTrade: (bond: Bond, quantity: number, tradeType: 'buy' | 'sell') => void;
   user: User;
-  bonds: Bond[];
+  backendState: any;
   addToast: (message: string, type?: 'success' | 'error') => void;
-  isContingencyMode: boolean;
 }
 
 const ALL_RATINGS = Object.values(CreditRating);
@@ -46,7 +45,8 @@ const getColumnCount = () => {
     return 1;
 };
 
-const Marketplace: React.FC<MarketplaceProps> = ({ navigate, handleTrade, user, bonds, addToast, isContingencyMode }) => {
+const Marketplace: React.FC<MarketplaceProps> = ({ navigate, handleTrade, user, backendState, addToast }) => {
+  const { bonds, isContingencyMode, isCircuitBreakerTripped } = backendState;
   const [selectedBond, setSelectedBond] = useState<Bond | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -166,18 +166,19 @@ const Marketplace: React.FC<MarketplaceProps> = ({ navigate, handleTrade, user, 
                     onTrade={handleSelectBondForTrade}
                     onViewDetails={handleViewBondDetails}
                     isContingencyMode={isContingencyMode}
+                    isCircuitBreakerTripped={isCircuitBreakerTripped}
                   />
             </div>
         );
     }
     return items;
-  }, [startIndex, endIndex, filteredBonds, columnCount, isContingencyMode, handleSelectBondForTrade, handleViewBondDetails]);
+  }, [startIndex, endIndex, filteredBonds, columnCount, isContingencyMode, handleSelectBondForTrade, handleViewBondDetails, isCircuitBreakerTripped]);
 
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-brand-text-secondary mt-2">Discover, filter, and trade from {bonds.length.toLocaleString()} corporate bonds.</p>
+        <p className="text-brand-text-secondary mt-2">Discover, filter, and trade from {bonds.length.toLocaleString()} corporate bonds, generated and updated live by Gemini.</p>
       </div>
       
       <div className="relative" ref={filterRef}>
@@ -289,7 +290,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ navigate, handleTrade, user, 
         </div>
       )}
       
-      {selectedBond && <TradeModal bond={selectedBond} onClose={handleCloseModal} handleTrade={handleTrade} user={user} addToast={addToast} isContingencyMode={isContingencyMode} />}
+      {selectedBond && <TradeModal bond={selectedBond} onClose={handleCloseModal} handleTrade={handleTrade} user={user} addToast={addToast} isContingencyMode={isContingencyMode} isCircuitBreakerTripped={isCircuitBreakerTripped} />}
     </div>
   );
 };

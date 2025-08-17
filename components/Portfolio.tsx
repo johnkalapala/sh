@@ -6,19 +6,19 @@ import { Icons } from './Icons';
 import { generatePortfolioOptimizationAnalysis } from '../services/geminiService';
 import WalletAndFunds from './WalletAndFunds';
 
-const COLORS = ['#58A6FF', '#1F6FEB', '#3FB950', '#D29922', '#A371F7', '#F85149', '#0366d6', '#9e9e9e'];
+const COLORS = ['#f59e0b', '#d97706', '#22c55e', '#eab308', '#a855f7', '#ef4444', '#3b82f6', '#a1a1aa'];
 
 
 interface PortfolioProps {
     userPortfolio: PortfolioHolding[];
     navigate: (view: ViewState) => void;
     user: User;
-    isContingencyMode: boolean;
     onOpenAddFunds: () => void;
-    bonds: Bond[];
+    backendState: any;
 }
 
-const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, isContingencyMode, onOpenAddFunds, bonds }) => {
+const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, onOpenAddFunds, backendState }) => {
+    const { isContingencyMode, bonds } = backendState;
     const [riskProfile, setRiskProfile] = useState('balanced');
     const [objective, setObjective] = useState('balanced');
     const [isOptimizing, setIsOptimizing] = useState(false);
@@ -26,7 +26,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
     const [optimizationAnalysis, setOptimizationAnalysis] = useState<string | null>(null);
 
     const portfolioBonds = userPortfolio.map(holding => {
-        const bondDetails = bonds.find(b => b.id === holding.bondId);
+        const bondDetails = bonds.find((b: Bond) => b.id === holding.bondId);
         return { ...holding, ...bondDetails };
     });
 
@@ -117,7 +117,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                                <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
                                 <Legend/>
                             </PieChart>
                         </ResponsiveContainer>
@@ -183,7 +183,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                                            <Tooltip contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46' }}/>
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
