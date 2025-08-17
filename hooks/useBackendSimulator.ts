@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType, User } from '../types';
 import { INITIAL_SYSTEM_METRICS, INITIAL_USER_WALLET_BALANCE } from '../constants';
 
-const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph', 'RegulatoryGateway'];
+const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph', 'RegulatoryGateway', 'Kafka', 'AggregationSvc', 'OrderMatchShard1', 'OrderMatchShard2', 'OrderMatchShard3'];
 
 const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) => {
     const [metrics, setMetrics] = useState<SystemMetrics>(INITIAL_SYSTEM_METRICS);
@@ -133,6 +133,27 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
             let transactionChance = 0.5;
 
             switch(activeScenario) {
+                case 'SCALE_TEST':
+                    const baseTps = 80000;
+                    const volatility = 40000;
+                    const totalTps = baseTps + (Math.random() * volatility) - (volatility / 2);
+                    
+                    newMetrics.Kafka.value = totalTps * 1.1; // Kafka ingests slightly more than processed
+                    newMetrics.Kafka.bufferSize = (newMetrics.Kafka.bufferSize || 0) + (newMetrics.Kafka.value - totalTps);
+                    
+                    const shard1Load = totalTps * (0.4 + (Math.random() - 0.5) * 0.1);
+                    const shard2Load = totalTps * (0.35 + (Math.random() - 0.5) * 0.1);
+                    const shard3Load = totalTps * (0.25 + (Math.random() - 0.5) * 0.1);
+
+                    newMetrics.OrderMatchShard1.value = shard1Load;
+                    newMetrics.OrderMatchShard2.value = shard2Load;
+                    newMetrics.OrderMatchShard3.value = shard3Load;
+                    
+                    newMetrics.AggregationSvc.value = 20 + Math.random() * 15;
+                    
+                    if(Math.random() < 0.5) addAnalyticsLog({ service: 'AggregationSvc', message: `Aggregated 1.2M micro-trades into 5k settlements. Latency: ${newMetrics.AggregationSvc.value.toFixed(0)}ms` });
+                    break;
+
                 case 'VOLATILITY_SPIKE':
                     transactionChance = 0.9;
                     newMetrics.OrderMatch.value = 7500 + Math.random() * 2000;
@@ -182,13 +203,13 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
             }
 
             SERVICE_NAMES.forEach(name => {
-                if (newMetrics[name] && newMetrics[name].status === 'Operational' && activeScenario !== 'CONTINGENCY') {
+                if (newMetrics[name] && newMetrics[name].status === 'Operational' && activeScenario !== 'CONTINGENCY' && activeScenario !== 'SCALE_TEST') {
                     newMetrics[name].value *= (1 + (Math.random() - 0.5) * 0.1);
                 }
             });
             setMetrics(newMetrics);
 
-            if (Math.random() < transactionChance) {
+            if (Math.random() < transactionChance && activeScenario !== 'SCALE_TEST') {
                 addTransaction({
                     type: 'MATCH',
                     status: 'SUCCESS',

@@ -63,19 +63,27 @@ export interface ToastMessage {
 }
 
 // Types for Backend Simulation
-export type ServiceName = 'UserIntf' | 'DPI' | 'APIGW' | 'OrderMatch' | 'TokenizSvc' | 'Pricing' | 'HederaHashgraph' | 'RegulatoryGateway';
+export type ServiceName = 
+  'UserIntf' | 'DPI' | 'APIGW' | 
+  'OrderMatch' | 'TokenizSvc' | 'Pricing' | 
+  'HederaHashgraph' | 'RegulatoryGateway' |
+  // New services for scalability simulation
+  'Kafka' | 'AggregationSvc' | 
+  'OrderMatchShard1' | 'OrderMatchShard2' | 'OrderMatchShard3';
 
-export type ScenarioType = 'NORMAL' | 'VOLATILITY_SPIKE' | 'API_GATEWAY_OVERLOAD' | 'DLT_CONGESTION' | 'DPI_OUTAGE' | 'CONTINGENCY';
+
+export type ScenarioType = 'NORMAL' | 'VOLATILITY_SPIKE' | 'API_GATEWAY_OVERLOAD' | 'DLT_CONGESTION' | 'DPI_OUTAGE' | 'CONTINGENCY' | 'SCALE_TEST';
 
 export interface SystemMetric {
   name: ServiceName;
-  status: 'Operational' | 'Degraded' | 'Down';
+  status: 'Operational' | 'Degraded' | 'Down' | 'Active';
   value: number;
   unit: string;
   // Optional scenario-specific data
   errorRate?: number; // For DPI outage
   requestsBlocked?: number; // for API GW overload
   pendingQueue?: number; // for DLT congestion
+  bufferSize?: number; // for Kafka
 }
 
 export type SystemMetrics = Record<ServiceName, SystemMetric>;
@@ -92,6 +100,6 @@ export interface TransactionEvent {
 export interface AnalyticsLog {
   id: string;
   timestamp: string;
-  service: 'Pricing' | 'AIS' | 'Swarm';
+  service: 'Pricing' | 'AIS' | 'Swarm' | 'AggregationSvc';
   message: string;
 }

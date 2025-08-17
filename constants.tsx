@@ -121,4 +121,10 @@ export const INITIAL_SYSTEM_METRICS: SystemMetrics = {
   Pricing: { name: 'Pricing', status: 'Operational', value: 95, unit: '%' }, // cache hit rate
   HederaHashgraph: { name: 'HederaHashgraph', status: 'Operational', value: 1.5, unit: 's' },
   RegulatoryGateway: { name: 'RegulatoryGateway', status: 'Operational', value: 5, unit: 'tx/min' },
+  // Scalability services
+  Kafka: { name: 'Kafka', status: 'Operational', value: 25000, unit: 'msg/s' },
+  AggregationSvc: { name: 'AggregationSvc', status: 'Operational', value: 100, unit: 'ms' },
+  OrderMatchShard1: { name: 'OrderMatchShard1', status: 'Operational', value: 0, unit: 'ops/s' },
+  OrderMatchShard2: { name: 'OrderMatchShard2', status: 'Operational', value: 0, unit: 'ops/s' },
+  OrderMatchShard3: { name: 'OrderMatchShard3', status: 'Operational', value: 0, unit: 'ops/s' },
 };

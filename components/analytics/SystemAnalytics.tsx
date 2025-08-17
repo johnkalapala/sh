@@ -15,13 +15,14 @@ import DltCongestionTest from './tests/DltCongestionTest';
 import DpiOutageTest from './tests/DpiOutageTest';
 import QuantumLabView from './tests/QuantumLabView';
 import RegulatoryDashboard from './RegulatoryDashboard';
+import ScalabilityTestView from './tests/ScalabilityTestView';
 
 
 interface SystemAnalyticsProps {
   backendState: any;
 }
 
-type ActiveTest = 'normal' | 'volatility' | 'api' | 'dlt' | 'dpi' | 'quantum' | 'contingency';
+type ActiveTest = 'normal' | 'volatility' | 'api' | 'dlt' | 'dpi' | 'quantum' | 'contingency' | 'scalability';
 
 const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
   const [activeTab, setActiveTab] = useState('monitoring');
@@ -67,6 +68,7 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
           case 'dlt': return <DltCongestionTest backendState={backendState} />;
           case 'dpi': return <DpiOutageTest backendState={backendState} />;
           case 'quantum': return <QuantumLabView />;
+          case 'scalability': return <ScalabilityTestView backendState={backendState} />;
           case 'contingency': return <DependencyChecklist isContingencyMode={isContingencyMode} isTestView={true} />;
           default: return <DefaultTestView />;
       }
@@ -92,7 +94,7 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
                          </p>
                       </div>
                        <div className={`px-3 py-1 rounded-full text-sm font-semibold ${isContingencyMode ? 'bg-brand-yellow/20 text-brand-yellow' : 'bg-brand-primary/20 text-brand-primary'}`}>
-                          Mode: {isContingencyMode ? 'Standard Operations' : 'Bio-Quantum'}
+                          Mode: {isContingencyMode ? 'Standard Operations' : activeScenario === 'SCALE_TEST' ? 'High-Throughput' : 'Bio-Quantum'}
                        </div>
                     </div>
                     <InteractiveArchitectureDiagram metrics={backendState.metrics} isContingencyMode={isContingencyMode} activeScenario={activeScenario} />
@@ -139,8 +141,9 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
                             <h4 className="px-3 pb-1 text-xs font-semibold text-brand-text-secondary uppercase">Resilience Tests</h4>
                              <TestMenuItem label="Quantum Link Failure" testId="contingency" scenarioId="CONTINGENCY" icon={<Icons.zap className="text-brand-red"/>} />
                          </div>
-                         <div className="pt-2">
-                            <h4 className="px-3 pb-1 text-xs font-semibold text-brand-text-secondary uppercase">Quantum Simulations</h4>
+                          <div className="pt-2">
+                            <h4 className="px-3 pb-1 text-xs font-semibold text-brand-text-secondary uppercase">Advanced Simulations</h4>
+                            <TestMenuItem label="Scalability Test" testId="scalability" scenarioId="SCALE_TEST" icon={<Icons.scaling />} />
                             <TestMenuItem label="Quantum Lab" testId="quantum" scenarioId="NORMAL" icon={<Icons.gemini />} />
                          </div>
                     </nav>

@@ -20,8 +20,9 @@ const INSTITUTIONAL_STEPS: { name: string; service: ServiceName; icon: React.Rea
     { name: 'Institutional Batch Settlement', service: 'HederaHashgraph', icon: <Icons.database /> },
 ];
 
-const getStatusInfo = (status: 'Operational' | 'Degraded' | 'Down') => {
+const getStatusInfo = (status: 'Operational' | 'Degraded' | 'Down' | 'Active') => {
     switch (status) {
+        case 'Active':
         case 'Operational':
             return { icon: <Icons.status.ok />, color: 'text-brand-green', border: 'border-brand-green' };
         case 'Degraded':
