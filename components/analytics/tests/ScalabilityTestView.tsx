@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from '../../Icons';
-import AnalyticsEngineLog from '../AnalyticsEngineLog';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Card from '../../shared/Card';
 
 interface ScalabilityTestViewProps {
   backendState: any;
@@ -41,61 +42,83 @@ const TpsGauge: React.FC<{ value: number; max: number }> = ({ value, max }) => {
 
 
 const ScalabilityTestView: React.FC<ScalabilityTestViewProps> = ({ backendState }) => {
-    const { metrics, analyticsLogs } = backendState;
+    const { metrics } = backendState;
     const shards = [metrics.OrderMatchShard1, metrics.OrderMatchShard2, metrics.OrderMatchShard3];
     const totalTps = shards.reduce((acc, s) => acc + s.value, 0);
 
-    const aggLogs = analyticsLogs.filter((l: any) => l.service === 'AggregationSvc');
+    const [latencyData, setLatencyData] = useState<any[]>([]);
 
-    const sectors = [
-        { name: 'Financials', volume: metrics.OrderMatchShard2.value },
-        { name: 'PSU/Infra', volume: metrics.OrderMatchShard1.value },
-        { name: 'Corporate', volume: metrics.OrderMatchShard3.value },
-        { name: 'Other', volume: totalTps * 0.1 * Math.random() },
-    ];
-    const maxVolume = Math.max(...sectors.map(s => s.volume));
+    useEffect(() => {
+         const now = new Date();
+         setLatencyData(prev => [
+            ...prev,
+            {
+                time: now.toLocaleTimeString(),
+                shard1: shards[0].p99Latency,
+                shard2: shards[1].p99Latency,
+                shard3: shards[2].p99Latency,
+            }
+         ].slice(-20));
+    }, [metrics]);
+    
+    const kafkaBuffer = metrics.Kafka.bufferSize || 0;
+    const maxBuffer = 50000; // Arbitrary max for visualization
+    const bufferPercent = Math.min(100, (kafkaBuffer / maxBuffer) * 100);
 
     return (
         <div>
             <div className="flex items-center space-x-3 mb-4">
                 <Icons.scaling className="h-8 w-8 text-brand-green" />
                 <div>
-                    <h2 className="text-xl font-bold text-white">High-Throughput Scalability Test</h2>
-                    <p className="text-sm text-brand-text-secondary">Simulating billion-trade daily volume with a sharded, production-grade architecture.</p>
+                    <h2 className="text-xl font-bold text-white">Market Pulse: High-Throughput Simulation</h2>
+                    <p className="text-sm text-brand-text-secondary">Visualizing key performance indicators for a production-grade, sharded architecture.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
+                 <Card>
                     <h3 className="text-lg font-semibold mb-2 text-center">Live Market Throughput</h3>
                     <TpsGauge value={totalTps} max={150000} />
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
                         {shards.map((shard, i) => (
                             <div key={i} className="bg-brand-surface p-2 rounded-md">
-                                <p className="font-bold text-brand-text">Shard {i+1}</p>
+                                <p className="font-bold text-brand-text">Shard {i+1} TPS</p>
                                 <p className="font-mono text-brand-primary">{shard.value.toLocaleString(undefined, {maximumFractionDigits:0})}</p>
                             </div>
                         ))}
                     </div>
-                </div>
-                 <div>
-                    <h3 className="text-lg font-semibold mb-2 text-center">Sector Volume Heatmap</h3>
-                    <div className="space-y-2">
-                        {sectors.map(sector => (
-                            <div key={sector.name} className="flex items-center space-x-2">
-                                <span className="w-24 text-sm text-right text-brand-text-secondary">{sector.name}</span>
-                                <div className="flex-1 h-6 bg-brand-surface rounded-sm">
-                                    <div 
-                                        className="h-full bg-gradient-to-r from-brand-green/50 to-brand-green rounded-sm" 
-                                        style={{ width: `${(sector.volume / maxVolume) * 100}%`}}
-                                    />
-                                </div>
+                 </Card>
+                 <Card>
+                    <h3 className="text-lg font-semibold mb-2 text-center">P99 Order Matching Latency (ms)</h3>
+                     <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={latencyData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
+                            <XAxis dataKey="time" stroke="#8B949E" fontSize={10} />
+                            <YAxis stroke="#8B949E" domain={[0, 40]} />
+                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }} />
+                            <Line type="monotone" dataKey="shard1" name="Shard 1" stroke="#58A6FF" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="shard2" name="Shard 2" stroke="#3FB950" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="shard3" name="Shard 3" stroke="#D29922" strokeWidth={2} dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                 </Card>
+                 <Card className="lg:col-span-2">
+                     <h3 className="text-lg font-semibold mb-2">Kafka Message Queue Status</h3>
+                     <div className="flex items-center space-x-4">
+                        <div className="text-center">
+                            <p className="text-sm text-brand-text-secondary">Ingress</p>
+                            <p className="text-2xl font-mono font-bold text-white">{(metrics.Kafka.value / 1000).toFixed(1)}k</p>
+                            <p className="text-xs text-brand-text-secondary">msg/s</p>
+                        </div>
+                        <div className="flex-grow">
+                             <p className="text-sm text-brand-text-secondary mb-1">Buffer Size</p>
+                             <div className="w-full h-6 bg-brand-surface rounded-full flex overflow-hidden border border-brand-border">
+                                <div className="h-full bg-brand-primary" style={{ width: `${bufferPercent}%` }}></div>
                             </div>
-                        ))}
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2 mt-4 text-center">Aggregation Service Log</h3>
-                    <AnalyticsEngineLog logs={aggLogs} limit={5} />
-                </div>
+                            <p className="text-xs text-right text-brand-text-secondary mt-1">{kafkaBuffer.toLocaleString(undefined, {maximumFractionDigits:0})} / {maxBuffer.toLocaleString()}</p>
+                        </div>
+                     </div>
+                 </Card>
             </div>
         </div>
     );

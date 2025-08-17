@@ -82,7 +82,7 @@ const InteractiveArchitectureDiagram: React.FC<DiagramProps> = ({ metrics, isCon
     const isScalabilityTest = activeScenario === 'SCALE_TEST';
     const mode = isScalabilityTest ? 'scalability' : isContingencyMode ? 'standard' : 'bio-quantum';
     
-    let positions;
+    let positions: Record<ServiceName, ServicePosition>;
     if (isScalabilityTest) positions = SCALABILITY_POSITIONS;
     else if (isContingencyMode) positions = STANDARD_POSITIONS;
     else positions = BIO_QUANTUM_POSITIONS;

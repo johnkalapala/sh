@@ -124,7 +124,7 @@ export const INITIAL_SYSTEM_METRICS: SystemMetrics = {
   // Scalability services
   Kafka: { name: 'Kafka', status: 'Operational', value: 25000, unit: 'msg/s' },
   AggregationSvc: { name: 'AggregationSvc', status: 'Operational', value: 100, unit: 'ms' },
-  OrderMatchShard1: { name: 'OrderMatchShard1', status: 'Operational', value: 0, unit: 'ops/s' },
-  OrderMatchShard2: { name: 'OrderMatchShard2', status: 'Operational', value: 0, unit: 'ops/s' },
-  OrderMatchShard3: { name: 'OrderMatchShard3', status: 'Operational', value: 0, unit: 'ops/s' },
+  OrderMatchShard1: { name: 'OrderMatchShard1', status: 'Operational', value: 0, unit: 'ops/s', p99Latency: 5 },
+  OrderMatchShard2: { name: 'OrderMatchShard2', status: 'Operational', value: 0, unit: 'ops/s', p99Latency: 5 },
+  OrderMatchShard3: { name: 'OrderMatchShard3', status: 'Operational', value: 0, unit: 'ops/s', p99Latency: 5 },
 };

@@ -84,6 +84,7 @@ export interface SystemMetric {
   requestsBlocked?: number; // for API GW overload
   pendingQueue?: number; // for DLT congestion
   bufferSize?: number; // for Kafka
+  p99Latency?: number; // for OrderMatch shards
 }
 
 export type SystemMetrics = Record<ServiceName, SystemMetric>;

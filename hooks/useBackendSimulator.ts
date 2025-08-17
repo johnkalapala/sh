@@ -133,27 +133,33 @@ const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) 
             let transactionChance = 0.5;
 
             switch(activeScenario) {
-                case 'SCALE_TEST':
+                case 'SCALE_TEST': {
                     const baseTps = 80000;
                     const volatility = 40000;
                     const totalTps = baseTps + (Math.random() * volatility) - (volatility / 2);
                     
-                    newMetrics.Kafka.value = totalTps * 1.1; // Kafka ingests slightly more than processed
-                    newMetrics.Kafka.bufferSize = (newMetrics.Kafka.bufferSize || 0) + (newMetrics.Kafka.value - totalTps);
-                    
-                    const shard1Load = totalTps * (0.4 + (Math.random() - 0.5) * 0.1);
-                    const shard2Load = totalTps * (0.35 + (Math.random() - 0.5) * 0.1);
-                    const shard3Load = totalTps * (0.25 + (Math.random() - 0.5) * 0.1);
+                    newMetrics.Kafka.value = totalTps * (1.05 + Math.random() * 0.1); // Kafka ingests 5-15% more than processed
+                    newMetrics.Kafka.bufferSize = Math.max(0, (newMetrics.Kafka.bufferSize || 0) + (newMetrics.Kafka.value - totalTps) * 0.1);
 
-                    newMetrics.OrderMatchShard1.value = shard1Load;
-                    newMetrics.OrderMatchShard2.value = shard2Load;
-                    newMetrics.OrderMatchShard3.value = shard3Load;
+                    const loads = [
+                        0.4 + (Math.random() - 0.5) * 0.1,
+                        0.35 + (Math.random() - 0.5) * 0.1,
+                        0.25 + (Math.random() - 0.5) * 0.1,
+                    ];
+                    
+                    const shards: ServiceName[] = ['OrderMatchShard1', 'OrderMatchShard2', 'OrderMatchShard3'];
+                    shards.forEach((shardName, i) => {
+                        const shard = newMetrics[shardName];
+                        shard.value = totalTps * loads[i];
+                        // Simulate latency: higher load = higher latency
+                        shard.p99Latency = 5 + (shard.value / (baseTps * 0.5)) * 15 * (1 + Math.random() * 0.2);
+                    });
                     
                     newMetrics.AggregationSvc.value = 20 + Math.random() * 15;
                     
                     if(Math.random() < 0.5) addAnalyticsLog({ service: 'AggregationSvc', message: `Aggregated 1.2M micro-trades into 5k settlements. Latency: ${newMetrics.AggregationSvc.value.toFixed(0)}ms` });
                     break;
-
+                }
                 case 'VOLATILITY_SPIKE':
                     transactionChance = 0.9;
                     newMetrics.OrderMatch.value = 7500 + Math.random() * 2000;
