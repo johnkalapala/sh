@@ -31,31 +31,27 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
         return;
     }
     
-    if (tradeType === 'buy' && (amount + transactionCost) > user.balance) {
-        alert("Insufficient funds.");
-        return;
-    }
-    
-    // In a real scenario, we would check if the user holds enough units to sell.
-    // For this prototype, we will assume they do.
-    
+    // The handleTrade function in App.tsx now contains all validation logic
+    // for KYC and wallet balance.
     handleTrade(bond, units, tradeType);
     onClose();
   };
   
   const totalDeduction = amount + transactionCost;
-  const insufficientFunds = tradeType === 'buy' && totalDeduction > user.balance;
+  const insufficientFunds = tradeType === 'buy' && totalDeduction > user.walletBalance;
   
   const getNewBalance = () => {
       if (tradeType === 'buy') {
-          return user.balance - totalDeduction;
+          return user.walletBalance - totalDeduction;
       }
-      return user.balance + (amount - transactionCost);
+      return user.walletBalance + (amount - transactionCost);
   }
 
   const fairValue = isContingencyMode ? bond.standardFairValue : bond.aiFairValue;
   const fairValueLabel = isContingencyMode ? 'Standard Fair Value' : 'Quantum Fair Value';
   const fairValueColor = isContingencyMode ? 'text-brand-yellow' : 'text-brand-primary';
+
+  const canTrade = user.kycStatus === 'verified';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
@@ -101,18 +97,25 @@ const TradeModal: React.FC<TradeModalProps> = ({ bond, onClose, handleTrade, use
             <div className="mt-4 space-y-2 text-sm text-brand-text-secondary">
                 <div className="flex justify-between"><span>Units to {tradeType}:</span><span className="font-mono text-white">{units.toFixed(4)}</span></div>
                 <div className="flex justify-between"><span>Est. Transaction Cost:</span><span className="font-mono text-white">₹{transactionCost.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Available Balance:</span><span className="font-mono text-white">₹{user.balance.toLocaleString('en-IN')}</span></div>
-                <div className="flex justify-between font-bold"><span className="text-brand-text">New Balance after Trade:</span><span className={`font-mono ${insufficientFunds ? 'text-brand-red' : 'text-white'}`}>₹{getNewBalance().toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                <div className="flex justify-between"><span>Available Wallet Balance:</span><span className="font-mono text-white">₹{user.walletBalance.toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between font-bold"><span className="text-brand-text">New Wallet Balance:</span><span className={`font-mono ${insufficientFunds ? 'text-brand-red' : 'text-white'}`}>₹{getNewBalance().toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
             </div>
-             {insufficientFunds && <p className="text-brand-red text-sm text-center mt-3">You do not have enough funds for this purchase.</p>}
+             {insufficientFunds && <p className="text-brand-red text-sm text-center mt-3">You do not have enough funds in your wallet for this purchase.</p>}
 
+            {!canTrade && (
+                 <div className="text-xs text-center text-brand-yellow mt-4 p-3 bg-brand-yellow/10 rounded-lg border border-brand-yellow/50">
+                    <p><strong>Action Required:</strong> Please complete KYC verification to enable trading.</p>
+                </div>
+            )}
+            
             <div className="text-xs text-center text-brand-text-secondary mt-4 p-3 bg-brand-bg rounded-lg border border-brand-border">
                 <p><strong>Fractional Ownership Enabled:</strong> You are purchasing a fraction of a bond, tokenized on the QuantumBond platform for greater accessibility.</p>
             </div>
 
+
             <button 
                 onClick={onExecuteTrade} 
-                disabled={insufficientFunds || amount <= 0}
+                disabled={insufficientFunds || amount <= 0 || !canTrade}
                 className={`w-full p-3 mt-4 rounded-md font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${tradeType === 'buy' ? 'bg-brand-green text-black hover:opacity-90' : 'bg-brand-red text-white hover:opacity-90'}`}
             >
                 Confirm {tradeType === 'buy' ? 'Buy' : 'Sell'} Order

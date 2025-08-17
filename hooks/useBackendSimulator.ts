@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType } from '../types';
-import { INITIAL_SYSTEM_METRICS } from '../constants';
+import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType, User } from '../types';
+import { INITIAL_SYSTEM_METRICS, INITIAL_USER_WALLET_BALANCE } from '../constants';
 
-const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph'];
+const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph', 'RegulatoryGateway'];
 
-const useBackendSimulator = (initialBonds: Bond[]) => {
+const useBackendSimulator = (initialBonds: Bond[], isUpiAutopayActive: boolean) => {
     const [metrics, setMetrics] = useState<SystemMetrics>(INITIAL_SYSTEM_METRICS);
     const [transactions, setTransactions] = useState<TransactionEvent[]>([]);
     const [analyticsLogs, setAnalyticsLogs] = useState<AnalyticsLog[]>([]);
@@ -13,6 +13,7 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
     );
     const [topMovers, setTopMovers] = useState<Bond[]>([]);
     const [activeScenario, setActiveScenario] = useState<ScenarioType>('NORMAL');
+    const [simulatedWalletBalance, setSimulatedWalletBalance] = useState(INITIAL_USER_WALLET_BALANCE);
 
     const isContingencyMode = activeScenario === 'CONTINGENCY';
 
@@ -64,6 +65,23 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
                 updateTransactionStatus(newTx.id, finalStatus, finalDetails);
             }, kycDelay);
         }
+        
+        if (newTx.type === 'UPI_MANDATE') {
+             let upiDelay = 3000 + Math.random() * 1000;
+             setTimeout(() => {
+                const finalStatus: TransactionEvent['status'] = Math.random() > 0.1 ? 'SUCCESS' : 'FAILED';
+                const finalDetails = newTx.details.replace('request sent', finalStatus === 'SUCCESS' ? 'mandate successfully activated' : 'mandate authorization failed');
+                updateTransactionStatus(newTx.id, finalStatus, finalDetails);
+             }, upiDelay);
+        }
+
+        if (newTx.type === 'FUNDING') {
+            setTimeout(() => {
+                const finalStatus: TransactionEvent['status'] = Math.random() > 0.05 ? 'SUCCESS' : 'FAILED';
+                const finalDetails = newTx.details.replace('initiated', finalStatus === 'SUCCESS' ? 'successful' : 'failed');
+                updateTransactionStatus(newTx.id, finalStatus, finalDetails);
+            }, 2500);
+        }
 
         if (newTx.type === 'ORDER' || newTx.type === 'MATCH') {
             setTimeout(() => {
@@ -76,15 +94,30 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
                 setTransactions(prev => [finalSettlementTx, ...prev].slice(0, 200));
 
                 setTimeout(() => {
+                    const dltProvider = finalSettlementTx.details.includes('Block trade') ? 'Permissioned DLT (Corda)' : isContingencyMode ? 'Standard Clearing' : 'Hedera DLT';
                     const finalStatus: TransactionEvent['status'] = Math.random() < 0.95 ? 'SUCCESS' : 'FAILED';
-                    const dltProvider = isContingencyMode ? 'Standard Clearing House' : 'Hashgraph DLT';
                     const finalDetails = finalSettlementTx.details.replace('pending', finalStatus === 'SUCCESS' ? `settled via ${dltProvider}` : 'failed');
                     updateTransactionStatus(finalSettlementTx.id, finalStatus, finalDetails);
+
+                    // Auto Top-up simulation
+                    if (finalStatus === 'SUCCESS' && isUpiAutopayActive && simulatedWalletBalance < 50000) {
+                        addAnalyticsLog({service: 'Swarm', message: `User wallet low. Triggering UPI Autopay.`});
+                        addTransaction({
+                            type: 'FUNDING',
+                            status: 'PENDING',
+                            details: `Automatic wallet funding of ₹200,000 initiated.`
+                        });
+                        setSimulatedWalletBalance(prev => prev + 200000);
+                    }
                 }, settlementDelay);
             }, 500);
         }
         return newTx;
-    }, [activeScenario, isContingencyMode, updateTransactionStatus, metrics.DPI.status]);
+    }, [activeScenario, isContingencyMode, updateTransactionStatus, metrics.DPI.status, isUpiAutopayActive, simulatedWalletBalance, addAnalyticsLog]);
+
+    const updateSimulatedWalletBalance = useCallback((newBalance: number) => {
+        setSimulatedWalletBalance(newBalance);
+    }, []);
 
     const runScenario = (scenario: ScenarioType) => {
         setMetrics(INITIAL_SYSTEM_METRICS);
@@ -96,7 +129,7 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
         setTopMovers(sortedByChange.slice(0, 10));
         
         const interval = setInterval(() => {
-            const newMetrics: SystemMetrics = JSON.parse(JSON.stringify(INITIAL_SYSTEM_METRICS));
+            const newMetrics: SystemMetrics = JSON.parse(JSON.stringify(metrics));
             let transactionChance = 0.5;
 
             switch(activeScenario) {
@@ -139,6 +172,7 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
                     newMetrics.OrderMatch.value = 800 + Math.random() * 200; // Slower standard engine
                     newMetrics.HederaHashgraph.status = 'Down';
                     newMetrics.HederaHashgraph.value = 2.5;
+                    newMetrics.RegulatoryGateway.status = 'Degraded';
                     break;
                 case 'NORMAL':
                      if (newMetrics.HederaHashgraph.pendingQueue && newMetrics.HederaHashgraph.pendingQueue > 0) {
@@ -148,7 +182,7 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
             }
 
             SERVICE_NAMES.forEach(name => {
-                if (newMetrics[name].status === 'Operational' && activeScenario !== 'CONTINGENCY') {
+                if (newMetrics[name] && newMetrics[name].status === 'Operational' && activeScenario !== 'CONTINGENCY') {
                     newMetrics[name].value *= (1 + (Math.random() - 0.5) * 0.1);
                 }
             });
@@ -161,13 +195,23 @@ const useBackendSimulator = (initialBonds: Bond[]) => {
                     details: `[${initialBonds[Math.floor(Math.random() * initialBonds.length)].isin}] order matched`
                 });
             }
+
+            // Simulate a large institutional trade for the regulatory dashboard
+            if (activeScenario !== 'CONTINGENCY' && Math.random() < 0.05) {
+                const tradeValue = (Math.floor(Math.random() * 10) + 5) * 10000000; // 50-150 Cr
+                 addTransaction({
+                    type: 'MATCH',
+                    status: 'SUCCESS',
+                    details: `[${initialBonds[Math.floor(Math.random() * initialBonds.length)].isin}] Block trade matched (₹${(tradeValue / 10000000).toFixed(0)} Cr)`
+                });
+            }
             
         }, 1800);
 
         return () => clearInterval(interval);
-    }, [initialBonds, addTransaction, addAnalyticsLog, activeScenario]);
+    }, [initialBonds, addTransaction, addAnalyticsLog, activeScenario, metrics]);
 
-    return { metrics, transactions, analyticsLogs, liveBondData, topMovers, runScenario, activeScenario, isContingencyMode, addTransaction };
+    return { metrics, transactions, analyticsLogs, liveBondData, topMovers, runScenario, activeScenario, isContingencyMode, addTransaction, updateSimulatedWalletBalance };
 };
 
 export { useBackendSimulator };

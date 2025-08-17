@@ -13,7 +13,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onConnect }) => {
           <Icons.logo />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">Welcome to QuantumBond</h1>
-        <p className="text-brand-text-secondary mb-8">The next-generation platform for corporate bond trading.</p>
+        <p className="text-brand-text-secondary mb-8">Solving bond market illiquidity through AI-driven tokenization and secure, fractional investing.</p>
         
         <button 
           onClick={onConnect}

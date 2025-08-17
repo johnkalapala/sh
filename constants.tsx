@@ -30,6 +30,19 @@ const issuers = [
     { name: 'HCL Technologies Ltd.', ratingPool: [CreditRating.AAA, CreditRating.AA_PLUS] },
 ];
 
+const ratingToScore = {
+    [CreditRating.AAA]: 95,
+    [CreditRating.AA_PLUS]: 90,
+    [CreditRating.AA]: 85,
+    [CreditRating.A_PLUS]: 80,
+    [CreditRating.A]: 75,
+    [CreditRating.BBB]: 65,
+    [CreditRating.BB]: 50,
+    [CreditRating.B]: 40,
+    [CreditRating.C]: 30,
+    [CreditRating.D]: 10,
+};
+
 const generatedBonds: Bond[] = [];
 const isinSet = new Set<string>();
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -58,6 +71,13 @@ while (generatedBonds.length < targetBondCount) {
     const aiFairValue = parseFloat((currentPrice + (Math.random() - 0.5) * 1.5).toFixed(2));
     const standardFairValue = parseFloat((currentPrice + (Math.random() - 0.5) * 0.4).toFixed(2));
     const dayChange = parseFloat(((Math.random() - 0.5) * 0.5).toFixed(3));
+    const bidAskSpread = parseFloat((Math.random() * 0.2 + 0.05).toFixed(3));
+    
+    // Calculate Risk & Value Score
+    const creditComponent = ratingToScore[rating] * 0.5; // 50% weight
+    const valueComponent = Math.max(0, 100 - Math.abs(currentPrice - aiFairValue) * 20) * 0.3; // 30% weight
+    const liquidityComponent = Math.max(0, 100 - bidAskSpread * 200) * 0.2; // 20% weight
+    const riskValueScore = Math.round(creditComponent + valueComponent + liquidityComponent + (Math.random() - 0.5) * 5);
 
     generatedBonds.push({
         id: fullIsin,
@@ -71,8 +91,11 @@ while (generatedBonds.length < targetBondCount) {
         aiFairValue: aiFairValue,
         standardFairValue: standardFairValue,
         volume: Math.floor(Math.random() * 190000000) + 10000000,
-        bidAskSpread: parseFloat((Math.random() * 0.2 + 0.05).toFixed(3)),
+        bidAskSpread: bidAskSpread,
         dayChange: dayChange,
+        riskValueScore: Math.min(100, Math.max(0, riskValueScore)),
+        prePlatformVolume: Math.floor(Math.random() * 4000000) + 1000000, // 10-50 Lakhs
+        prePlatformInvestors: Math.floor(Math.random() * 400) + 100, // 100-500
     });
 }
 
@@ -87,7 +110,7 @@ export const INITIAL_USER_PORTFOLIO: PortfolioHolding[] = portfolioBondsSample.m
     purchasePrice: parseFloat((bond.currentPrice * (1 + (Math.random() - 0.5) * 0.01)).toFixed(2)) 
 }));
 
-export const INITIAL_USER_BALANCE = 1000000; // 10 Lakh INR
+export const INITIAL_USER_WALLET_BALANCE = 1000000; // 10 Lakh INR
 
 export const INITIAL_SYSTEM_METRICS: SystemMetrics = {
   UserIntf: { name: 'UserIntf', status: 'Operational', value: 50, unit: 'ms' },
@@ -97,4 +120,5 @@ export const INITIAL_SYSTEM_METRICS: SystemMetrics = {
   TokenizSvc: { name: 'TokenizSvc', status: 'Operational', value: 99.98, unit: '%' },
   Pricing: { name: 'Pricing', status: 'Operational', value: 95, unit: '%' }, // cache hit rate
   HederaHashgraph: { name: 'HederaHashgraph', status: 'Operational', value: 1.5, unit: 's' },
+  RegulatoryGateway: { name: 'RegulatoryGateway', status: 'Operational', value: 5, unit: 'tx/min' },
 };

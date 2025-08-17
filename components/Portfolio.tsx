@@ -5,6 +5,7 @@ import { PortfolioHolding, ViewState, User } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Icons } from './Icons';
 import { generatePortfolioOptimizationAnalysis } from '../services/geminiService';
+import WalletAndFunds from './WalletAndFunds';
 
 const COLORS = ['#58A6FF', '#1F6FEB', '#3FB950', '#D29922', '#A371F7', '#F85149', '#0366d6', '#9e9e9e'];
 
@@ -14,9 +15,10 @@ interface PortfolioProps {
     navigate: (view: ViewState) => void;
     user: User;
     isContingencyMode: boolean;
+    onOpenAddFunds: () => void;
 }
 
-const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, isContingencyMode }) => {
+const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, isContingencyMode, onOpenAddFunds }) => {
     const [riskProfile, setRiskProfile] = useState('balanced');
     const [objective, setObjective] = useState('balanced');
     const [isOptimizing, setIsOptimizing] = useState(false);
@@ -32,14 +34,14 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
         return acc + (holding.quantity * (holding.currentPrice || 0));
     }, 0);
     
-    const totalValue = holdingsValue + user.balance;
+    const totalValue = holdingsValue + user.walletBalance;
 
     const portfolioChartData = [
         ...portfolioBonds.map(holding => ({
             name: holding.issuer || 'Unknown',
             value: holding.quantity * (holding.currentPrice || 0)
         })),
-        { name: 'Cash', value: user.balance }
+        { name: 'Wallet Balance', value: user.walletBalance }
     ];
     
     const handleOptimize = async () => {
@@ -61,7 +63,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
         ];
         
         try {
-            const analysisResult = await generatePortfolioOptimizationAnalysis(portfolioBonds, user.balance, riskProfile, objective);
+            const analysisResult = await generatePortfolioOptimizationAnalysis(portfolioBonds, user.walletBalance, riskProfile, objective);
             setOptimizationAnalysis(analysisResult);
         } catch (error) {
             console.error("Failed to fetch Gemini analysis:", error);
@@ -121,8 +123,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userPortfolio, navigate, user, is
                         </ResponsiveContainer>
                     </Card>
                      <Card>
-                        <h3 className="text-xl font-semibold mb-4">Cash Balance</h3>
-                        <p className="text-3xl font-bold text-white">₹{user.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <WalletAndFunds user={user} onAddFunds={onOpenAddFunds} />
                     </Card>
                 </div>
             </div>

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { ViewState, Bond, User } from '../types';
 import { BONDS } from '../constants';
-import { generateBondDeepDiveAnalysis } from '../services/geminiService';
+import { generateBondDeepDiveAnalysis, generateRiskAndValueScoreAnalysis } from '../services/geminiService';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Icons } from './Icons';
 import OrderBook from './OrderBook';
 import TradeModal from './TradeModal';
@@ -34,6 +34,88 @@ const generatePriceHistory = (basePrice: number) => {
     data.push({day: 'Today', price: basePrice});
     return data;
 };
+
+const RiskValueScoreCard: React.FC<{ bond: Bond }> = ({ bond }) => {
+    const [analysis, setAnalysis] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const scoreColor = bond.riskValueScore > 80 ? 'text-brand-green' : bond.riskValueScore > 60 ? 'text-brand-yellow' : 'text-brand-red';
+
+    const handleFetchAnalysis = async () => {
+        setIsLoading(true);
+        setAnalysis(null);
+        try {
+            const result = await generateRiskAndValueScoreAnalysis(bond);
+            setAnalysis(result);
+        } catch(e) {
+            setAnalysis('Error fetching analysis.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Card>
+            <h3 className="text-xl font-semibold mb-2">AI Risk & Value Score</h3>
+            <div className="text-center">
+                <p className={`text-6xl font-bold ${scoreColor}`}>{bond.riskValueScore}<span className="text-3xl text-brand-text-secondary">/100</span></p>
+                <p className="text-brand-text-secondary">A composite score of credit, valuation, and liquidity.</p>
+            </div>
+            <div className="mt-4">
+                {isLoading ? <Spinner /> : analysis ? (
+                    <div className="gemini-analysis bg-brand-bg p-3 rounded-md" dangerouslySetInnerHTML={{ __html: analysis }}/>
+                ) : (
+                    <button onClick={handleFetchAnalysis} className="w-full text-center bg-brand-bg hover:bg-brand-border text-brand-primary font-semibold py-2 px-4 rounded-md mt-2 transition-colors">
+                        Get AI Breakdown
+                    </button>
+                )}
+            </div>
+        </Card>
+    );
+};
+
+const LiquidityImpactCard: React.FC<{ bond: Bond }> = ({ bond }) => {
+    const volumeData = [
+        { name: 'Pre-Platform', 'Avg Daily Volume (₹ Cr)': parseFloat((bond.prePlatformVolume / 10000000).toFixed(2)) },
+        { name: 'On QuantumBond', 'Avg Daily Volume (₹ Cr)': parseFloat((bond.volume / 10000000).toFixed(2)) },
+    ];
+    const investorData = [
+         { name: 'Pre-Platform', 'Investor Base': bond.prePlatformInvestors },
+        { name: 'On QuantumBond', 'Investor Base': bond.prePlatformInvestors * 50 + Math.floor(Math.random() * 1000) },
+    ];
+    return (
+        <Card>
+            <h3 className="text-xl font-semibold mb-4">Liquidity Impact Analysis</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                    <p className="text-center text-sm text-brand-text-secondary mb-2">Avg. Daily Volume</p>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={volumeData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
+                            <XAxis dataKey="name" fontSize={12} stroke="#8B949E"/>
+                            <YAxis fontSize={12} stroke="#8B949E"/>
+                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                            <Bar dataKey="Avg Daily Volume (₹ Cr)" fill="#58A6FF" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                <div>
+                    <p className="text-center text-sm text-brand-text-secondary mb-2">Investor Base Growth</p>
+                     <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={investorData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                             <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
+                            <XAxis dataKey="name" fontSize={12} stroke="#8B949E"/>
+                            <YAxis fontSize={12} stroke="#8B949E"/>
+                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                            <Bar dataKey="Investor Base" fill="#3FB950" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
 
 const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, user, addToast, backendState, isContingencyMode }) => {
   const [deepDiveAnalysis, setDeepDiveAnalysis] = useState<string | null>(null);
@@ -95,41 +177,33 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
         <Card><p className="text-sm text-brand-text-secondary">Maturity</p><p className="text-xl font-bold">{bond.maturityDate}</p></Card>
         <Card><p className="text-sm text-brand-text-secondary">Credit Rating</p><p className="text-xl font-bold">{bond.creditRating}</p></Card>
       </div>
+      
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <RiskValueScoreCard bond={bond} />
+          <div className="lg:col-span-2">
+            <LiquidityImpactCard bond={bond} />
+          </div>
+       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
-            <h3 className="text-xl font-semibold mb-4">Price Performance & Liquidity</h3>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2">
-                    <p className="text-center text-sm text-brand-text-secondary mb-2">30-Day Price History</p>
-                    <ResponsiveContainer width="100%" height={250}>
-                        <AreaChart data={priceHistory}>
-                            <defs>
-                                <linearGradient id="colorPriceDetail" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#58A6FF" stopOpacity={0.4}/>
-                                    <stop offset="95%" stopColor="#58A6FF" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="day" stroke="#8B949E" fontSize={12} />
-                            <YAxis stroke="#8B949E" domain={['dataMin - 2', 'dataMax + 2']} fontSize={12} />
-                            <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
-                            <Area type="monotone" dataKey="price" stroke="#58A6FF" fill="url(#colorPriceDetail)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className="space-y-4">
-                    <h4 className="text-lg font-semibold text-center">Liquidity Metrics</h4>
-                    <div className="bg-brand-bg p-4 rounded-md text-center">
-                        <p className="text-brand-text-secondary">24h Trading Volume</p>
-                        <p className="text-xl font-bold text-white">₹{bond.volume.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-brand-bg p-4 rounded-md text-center">
-                        <p className="text-brand-text-secondary">Bid-Ask Spread</p>
-                        <p className="text-xl font-bold text-white">{bond.bidAskSpread.toFixed(3)}</p>
-                    </div>
-                </div>
-            </div>
+            <h3 className="text-xl font-semibold mb-4">Price Performance (30-Day)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={priceHistory}>
+                    <defs>
+                        <linearGradient id="colorPriceDetail" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#58A6FF" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#58A6FF" stopOpacity={0}/>
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
+                    <XAxis dataKey="day" stroke="#8B949E" fontSize={12} />
+                    <YAxis stroke="#8B949E" domain={['dataMin - 2', 'dataMax + 2']} fontSize={12} />
+                    <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }}/>
+                    <Area type="monotone" dataKey="price" stroke="#58A6FF" fill="url(#colorPriceDetail)" />
+                </AreaChart>
+            </ResponsiveContainer>
           </Card>
           <Card>
              <h3 className="text-xl font-semibold mb-2">Live Order Book</h3>
@@ -145,7 +219,7 @@ const BondDetail: React.FC<BondDetailProps> = ({ bondId, navigate, handleTrade, 
         <p className="text-sm text-brand-text-secondary mb-4">
             This visualizer shows the real-time status of the backend services involved in processing a trade for this bond. Status changes are influenced by the scenarios in the <button onClick={() => navigate({page: 'system-analytics'})} className="text-brand-primary hover:underline">System Analytics</button> dashboard.
         </p>
-        <BondProcessVisualizer backendState={backendState} />
+        <BondProcessVisualizer backendState={backendState} isContingencyMode={isContingencyMode} />
       </Card>
       
       <Card>

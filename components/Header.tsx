@@ -30,7 +30,23 @@ const KycStatusIndicator: React.FC<{ status: User['kycStatus'] }> = ({ status })
     const currentStatus = statusMap[status];
 
     return (
-         <div className={`flex items-center space-x-2 ${currentStatus.color}`}>
+         <div className={`flex items-center space-x-2 ${currentStatus.color}`} title={`KYC Status: ${currentStatus.text}`}>
+            {currentStatus.icon}
+            <span className="text-sm font-semibold hidden md:inline">{currentStatus.text}</span>
+        </div>
+    );
+}
+
+const UpiAutopayIndicator: React.FC<{ status: User['upiAutopay']['status'] }> = ({ status }) => {
+    const statusMap = {
+        none: { text: 'Auto Top-up Off', icon: <Icons.upi />, color: 'text-brand-text-secondary' },
+        pending: { text: 'Pending', icon: <Icons.spinner className="animate-spin" />, color: 'text-brand-yellow' },
+        active: { text: 'Auto Top-up On', icon: <Icons.upi />, color: 'text-brand-green' },
+    };
+     const currentStatus = statusMap[status];
+
+    return (
+         <div className={`flex items-center space-x-2 ${currentStatus.color}`} title={`UPI Auto Top-up: ${currentStatus.text}`}>
             {currentStatus.icon}
             <span className="text-sm font-semibold hidden md:inline">{currentStatus.text}</span>
         </div>
@@ -51,10 +67,12 @@ const Header: React.FC<HeaderProps> = ({ currentPage, user, onDisconnect, active
              <SecurityStatus activeScenario={activeScenario} isContingencyMode={isContingencyMode} />
              <div className="hidden sm:flex items-center space-x-3 bg-brand-bg border border-brand-border px-3 py-1.5 rounded-lg">
                 <KycStatusIndicator status={user.kycStatus} />
+                <div className="w-px h-4 bg-brand-border"></div>
+                <UpiAutopayIndicator status={user.upiAutopay.status} />
              </div>
              <div className="hidden sm:flex items-center space-x-3 bg-brand-bg border border-brand-border px-3 py-1.5 rounded-lg">
-                <Icons.cash className="text-brand-yellow" />
-                <span className="font-mono text-white">₹{user.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <Icons.wallet className="text-brand-yellow" />
+                <span className="font-mono text-white">₹{user.walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div className="flex items-center space-x-2">
                 <div className="px-3 py-1.5 bg-brand-bg border border-brand-border rounded-lg text-sm">

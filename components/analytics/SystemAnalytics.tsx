@@ -14,6 +14,7 @@ import ApiGatewayStressTest from './tests/ApiGatewayStressTest';
 import DltCongestionTest from './tests/DltCongestionTest';
 import DpiOutageTest from './tests/DpiOutageTest';
 import QuantumLabView from './tests/QuantumLabView';
+import RegulatoryDashboard from './RegulatoryDashboard';
 
 
 interface SystemAnalyticsProps {
@@ -73,10 +74,11 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
 
   return (
     <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-1 bg-brand-bg border border-brand-border rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-1 bg-brand-bg border border-brand-border rounded-lg">
             <TabButton id="monitoring" label="Live Monitoring" icon={<Icons.analytics />} />
             <TabButton id="testing" label="System & Quantum Lab" icon={<Icons.lab />} />
-            <TabButton id="dependencies" label="Dependencies & Fallbacks" icon={<Icons.link />} />
+            <TabButton id="dependencies" label="Dependencies" icon={<Icons.link />} />
+            <TabButton id="regulatory" label="Regulatory View" icon={<Icons.shieldNodes />} />
         </div>
         
         {activeTab === 'monitoring' && (
@@ -114,6 +116,10 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
             <Card>
                 <DependencyChecklist isContingencyMode={isContingencyMode} />
             </Card>
+        )}
+
+        {activeTab === 'regulatory' && (
+            <RegulatoryDashboard backendState={backendState} />
         )}
         
         {activeTab === 'testing' && (

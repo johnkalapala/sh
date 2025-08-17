@@ -23,7 +23,7 @@ const VolatilityTest: React.FC<VolatilityTestProps> = ({ backendState }) => {
         }, 1800);
         return () => clearInterval(interval);
     }, [backendState.metrics.OrderMatch.value]);
-    
+
     const swarmLogs = backendState.analyticsLogs.filter((l: any) => l.service === 'Swarm');
 
     return (
@@ -32,25 +32,25 @@ const VolatilityTest: React.FC<VolatilityTestProps> = ({ backendState }) => {
                 <Icons.fire className="h-8 w-8 text-brand-yellow" />
                 <div>
                     <h2 className="text-xl font-bold text-white">Market Volatility Spike</h2>
-                    <p className="text-sm text-brand-text-secondary">Simulating high-volume trading and testing adaptive liquidity.</p>
+                    <p className="text-sm text-brand-text-secondary">Simulating high-frequency trading and testing the AI Swarm Intelligence for liquidity routing.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                     <h3 className="text-lg font-semibold mb-2 text-center">Order Matching Engine (ops/s)</h3>
-                     <ResponsiveContainer width="100%" height={250}>
+                    <h3 className="text-lg font-semibold mb-2 text-center">Matching Engine Throughput (ops/sec)</h3>
+                    <ResponsiveContainer width="100%" height={250}>
                         <LineChart data={performanceData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
-                            <XAxis dataKey="time" stroke="#8B949E" fontSize={10}/>
-                            <YAxis stroke="#8B949E" domain={[0, 12000]}/>
+                            <XAxis dataKey="time" stroke="#8B949E" fontSize={10} />
+                            <YAxis stroke="#8B949E" domain={[0, 10000]} />
                             <Tooltip contentStyle={{ backgroundColor: '#161B22', border: '1px solid #30363D' }} />
-                            <Line type="monotone" dataKey="ops" name="Ops/sec" stroke="#58A6FF" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="ops" name="Ops/sec" stroke="#D29922" strokeWidth={2} dot={false} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold mb-2 text-center">Swarm Intelligence Log</h3>
+                    <h3 className="text-lg font-semibold mb-2 text-center">AI Swarm Intelligence Log</h3>
                     <AnalyticsEngineLog logs={swarmLogs} limit={10} />
                 </div>
             </div>

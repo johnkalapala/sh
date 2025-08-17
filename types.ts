@@ -25,6 +25,10 @@ export interface Bond {
   volume: number;
   bidAskSpread: number;
   dayChange: number;
+  // New fields for enhanced analysis
+  riskValueScore: number; // 1-100, higher is better (less risk, better value)
+  prePlatformVolume: number;
+  prePlatformInvestors: number;
 }
 
 export interface PortfolioHolding {
@@ -43,8 +47,13 @@ export type ViewState = {
 export interface User {
   isConnected: boolean;
   walletAddress: string;
-  balance: number; // in INR
+  walletBalance: number; // in INR
   kycStatus: 'unverified' | 'pending' | 'verified';
+  upiAutopay: {
+    status: 'none' | 'pending' | 'active';
+    threshold: number;
+    amount: number;
+  };
 }
 
 export interface ToastMessage {
@@ -54,7 +63,7 @@ export interface ToastMessage {
 }
 
 // Types for Backend Simulation
-export type ServiceName = 'UserIntf' | 'DPI' | 'APIGW' | 'OrderMatch' | 'TokenizSvc' | 'Pricing' | 'HederaHashgraph';
+export type ServiceName = 'UserIntf' | 'DPI' | 'APIGW' | 'OrderMatch' | 'TokenizSvc' | 'Pricing' | 'HederaHashgraph' | 'RegulatoryGateway';
 
 export type ScenarioType = 'NORMAL' | 'VOLATILITY_SPIKE' | 'API_GATEWAY_OVERLOAD' | 'DLT_CONGESTION' | 'DPI_OUTAGE' | 'CONTINGENCY';
 
@@ -74,7 +83,7 @@ export type SystemMetrics = Record<ServiceName, SystemMetric>;
 export interface TransactionEvent {
   id: string;
   timestamp: string;
-  type: 'KYC' | 'ORDER' | 'MATCH' | 'TOKENIZE' | 'SETTLEMENT' | 'PRICE_UPDATE';
+  type: 'KYC' | 'ORDER' | 'MATCH' | 'TOKENIZE' | 'SETTLEMENT' | 'PRICE_UPDATE' | 'UPI_MANDATE' | 'FUNDING';
   status: 'SUCCESS' | 'PENDING' | 'FAILED';
   details: string;
   dltHash?: string;

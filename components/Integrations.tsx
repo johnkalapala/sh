@@ -47,40 +47,54 @@ placeTrade("INE040A07197", 100, "BUY")
   .then(order => console.log('Order placed:', order));
 `;
 
+const upiMandateSnippet = `const API_KEY = "YOUR_API_KEY_HERE";
+const BASE_URL = "https://api.quantumbond.exchange/v1";
+
+async function createUpiMandate(userId, maxAmount) {
+  const response = await fetch(\`\${BASE_URL}/mandates/upi\`, {
+    method: 'POST',
+    headers: {
+      'Authorization': \`Bearer \${API_KEY}\`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      userId: userId,
+      maxAmount: maxAmount, // e.g., 500000 for 5 Lakh INR
+      frequency: "AS_PRESENTED"
+    })
+  });
+  // This will return a deeplink to be opened in the user's UPI app
+  return await response.json();
+}
+
+// Example: Create a 5 Lakh mandate for a user
+createUpiMandate("user-12345", 500000)
+  .then(mandate => console.log('UPI Mandate request created:', mandate));
+`;
+
 const Integrations: React.FC = () => {
     const [apiKey, setApiKey] = useState('');
     const [apiLog, setApiLog] = useState<string[]>([]);
-    const [connectivity, setConnectivity] = useState({ nse: false, bse: false });
-
+    
     const generateApiKey = () => {
         setApiKey(`qbe_live_${[...Array(32)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`);
     };
 
     useEffect(() => {
         const interval = setInterval(() => {
-            const methods = ['GET', 'POST', 'GET'];
-            const paths = ['/v1/bonds/INE002A07018', '/v1/orders', '/v1/bonds/INE040A07197'];
-            const statuses = ['200 OK', '201 Created', '404 Not Found'];
+            const methods = ['GET', 'POST', 'GET', 'POST'];
+            const paths = ['/v1/bonds/INE002A07018', '/v1/orders', '/v1/bonds/INE040A07197', '/v1/mandates/upi'];
+            const statuses = ['200 OK', '201 Created', '404 Not Found', '201 Created'];
             const latency = (Math.random() * 80 + 20).toFixed(0);
             
-            const randomLog = `${new Date().toLocaleTimeString()} - ${methods[Math.floor(Math.random()*3)]} ${paths[Math.floor(Math.random()*3)]} - ${statuses[Math.floor(Math.random()*3)]} (${latency}ms)`;
+            const randomIndex = Math.floor(Math.random()*4)
+            const randomLog = `${new Date().toLocaleTimeString()} - ${methods[randomIndex]} ${paths[randomIndex]} - ${statuses[randomIndex]} (${latency}ms)`;
 
             setApiLog(prev => [randomLog, ...prev].slice(0, 50));
         }, 2500);
 
         return () => clearInterval(interval);
     }, []);
-
-    const ToggleSwitch: React.FC<{ label: string; checked: boolean; onChange: (checked: boolean) => void }> = ({ label, checked, onChange }) => (
-        <label className="flex items-center justify-between cursor-pointer">
-            <span className="font-semibold">{label}</span>
-            <div className="relative">
-                <input type="checkbox" className="sr-only" checked={checked} onChange={e => onChange(e.target.checked)} />
-                <div className={`block w-14 h-8 rounded-full ${checked ? 'bg-brand-primary' : 'bg-brand-bg'}`}></div>
-                <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${checked ? 'transform translate-x-6' : ''}`}></div>
-            </div>
-        </label>
-    );
 
     return (
         <div className="space-y-6">
@@ -90,13 +104,6 @@ const Integrations: React.FC = () => {
             </Card>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-6">
-                    <Card>
-                        <h3 className="text-xl font-semibold mb-4">Live Connectivity</h3>
-                        <div className="space-y-4">
-                            <ToggleSwitch label="NSE Matching Engine" checked={connectivity.nse} onChange={c => setConnectivity(p => ({...p, nse: c}))} />
-                            <ToggleSwitch label="BSE Matching Engine" checked={connectivity.bse} onChange={c => setConnectivity(p => ({...p, bse: c}))} />
-                        </div>
-                    </Card>
                     <Card>
                         <h3 className="text-xl font-semibold mb-4">API Key Management</h3>
                         {apiKey ? (
@@ -111,10 +118,15 @@ const Integrations: React.FC = () => {
                             </button>
                         )}
                     </Card>
+                    <Card>
+                        <h3 className="text-xl font-semibold mb-4">UPI Mandate API</h3>
+                         <p className="text-sm text-brand-text-secondary mb-2">Programmatically create UPI Autopay mandates for seamless user onboarding and settlement.</p>
+                        <CodeSnippet code={upiMandateSnippet} language="javascript" />
+                    </Card>
                 </div>
                 <Card className="lg:col-span-2">
                     <h3 className="text-xl font-semibold mb-4">Live API Call Log</h3>
-                    <div className="bg-brand-bg p-2 rounded-md h-64 overflow-y-auto font-mono text-xs text-brand-text-secondary space-y-1">
+                    <div className="bg-brand-bg p-2 rounded-md h-[450px] overflow-y-auto font-mono text-xs text-brand-text-secondary space-y-1">
                         {apiLog.map((log, i) => (
                             <p key={i} className="whitespace-pre-wrap">{log}</p>
                         ))}

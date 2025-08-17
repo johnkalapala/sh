@@ -20,14 +20,14 @@ const createGeneralAnalysisPrompt = (): string => {
   `;
 };
 
-const createEntropyAnalysisPrompt = (): string => {
+const createLiquidityAnalysisPrompt = (): string => {
   return `
-  Based on information theory and market dynamics, provide a "Market Health (Entropy) Score" for the Indian corporate bond market.
-  - The score should be between 0 (highly predictable, potentially stagnant) and 100 (highly chaotic, unpredictable).
-  - A healthy, liquid market typically has a score between 60 and 85.
-  - Provide the score and a brief one-sentence explanation of what it means in the context of market predictability and liquidity.
+  Based on order book depth, bid-ask spreads, and trading volume, provide a "Market Liquidity Score" for the Indian corporate bond market.
+  - The score should be between 0 (highly illiquid, difficult to trade) and 100 (highly liquid, easy to trade).
+  - A healthy market has a score above 70.
+  - Provide the score and a brief one-sentence explanation of what it means for an investor.
   
-  Example format: **72/100 (Stable Liquidity)** - The market shows healthy trading activity and balanced predictability, indicating stable conditions.
+  Example format: **85/100 (High Liquidity)** - The market has deep order books and tight spreads, allowing investors to trade assets quickly with minimal price impact.
   `;
 };
 
@@ -163,7 +163,7 @@ const mockMarketNewsResponse = `
 *   **Impact Analysis (Negative):** Negative for the **IT/Technology** sector. While major firms have strong balance sheets, their credit outlook may be slightly tempered, potentially leading to wider spreads on any new bond issuances.
 `;
 
-const mockEntropyResponse = `**72/100 (Stable Liquidity)** - The market shows healthy trading activity and balanced predictability, indicating stable conditions.`;
+const mockLiquidityResponse = `**85/100 (High Liquidity)** - The market has deep order books and tight spreads, allowing investors to trade assets quickly with minimal price impact.`;
 
 const mockPortfolioAnalysisResponse = (portfolio: any[], balance: number, riskProfile: string, objective: string) => {
   const totalHoldings = portfolio.reduce((acc, bond) => acc + bond.quantity * bond.currentPrice, 0);
@@ -251,8 +251,48 @@ The QAE algorithm achieved a high-confidence VaR estimate with significantly few
     }
 }
 
+const mockRiskValueScoreAnalysis = (bond: Bond) => `
+### AI-Powered Risk & Value Analysis
+
+The score of **${bond.riskValueScore}/100** is a composite metric designed to provide an at-a-glance assessment. It is derived from three key pillars:
+
+**1. Credit Quality (50% Weighting):**
+- **Rating:** ${bond.creditRating}
+- **Analysis:** The bond's strong credit rating from a reputable agency forms the largest component of this score. It indicates a very high probability of the issuer meeting its debt obligations, significantly reducing default risk for investors.
+
+**2. Valuation (30% Weighting):**
+- **Market vs. AI Fair Value:** ₹${bond.currentPrice} vs. ₹${bond.aiFairValue}
+- **Analysis:** Our AI model suggests the bond is currently trading ${bond.currentPrice < bond.aiFairValue ? 'at a slight discount' : 'at a slight premium'} to its intrinsic fair value. This component rewards bonds that appear undervalued, offering a potential value opportunity.
+
+**3. Liquidity (20% Weighting):**
+- **Bid-Ask Spread:** ${bond.bidAskSpread}
+- **Analysis:** The relatively tight bid-ask spread suggests a healthy level of market activity and liquidity for this bond. This means investors can likely buy or sell the bond quickly without significantly impacting its price, which is a positive factor.
+`;
+
+const mockRegulatoryDashboardSummary = () => `
+### Market Supervisory Overview
+*Generated: ${new Date().toLocaleString()}*
+
+This is an AI-driven summary for regulatory oversight, highlighting key market trends and potential risks based on real-time data from the exchange.
+
+**1. Market Concentration:**
+- The top 5 most traded bonds by volume account for **38%** of the total daily volume, a moderate level of concentration.
+- **HDFC Bank and Reliance Industries** bonds remain the most active, consistent with previous periods. No single issuer is showing signs of unusual, systemic concentration risk.
+
+**2. Systemic Risk Indicators:**
+- Overall market leverage remains within acceptable parameters.
+- The **Bio-Inspired AIS** has flagged **12 minor incidents** of anomalous trading patterns in the last hour, primarily related to potential fat-finger errors on limit orders. All were successfully blocked at the gateway with no market impact.
+
+**3. Large Trade Monitoring:**
+- **3 block trades** exceeding ₹50 Crore have been successfully executed and settled via the Regulatory Gateway in the past 24 hours. All participating entities were fully KYC-compliant.
+- One large trade was flagged for review due to its price being 2% outside the AI fair value range, but was manually approved after review.
+
+**Conclusion:** The market is operating within expected parameters. The AIS is effectively mitigating minor operational risks, and the regulatory gateway provides a clear audit trail for all significant institutional movements.
+`;
+
+
 // Mock function to simulate a Gemini API call
-export const generateGeminiAnalysis = (type: 'general' | 'bond' | 'entropy', bond?: Bond): Promise<string> => {
+export const generateGeminiAnalysis = (type: 'general' | 'bond' | 'liquidity', bond?: Bond): Promise<string> => {
   console.log(`Generating Gemini Analysis for: ${type}`);
   return new Promise(resolve => {
     setTimeout(() => {
@@ -260,8 +300,8 @@ export const generateGeminiAnalysis = (type: 'general' | 'bond' | 'entropy', bon
         resolve(mockBondSpecificAnalysisResponse(bond));
       } else if (type === 'general') {
         resolve(mockGeneralAnalysisResponse);
-      } else if (type === 'entropy') {
-        resolve(mockEntropyResponse);
+      } else if (type === 'liquidity') {
+        resolve(mockLiquidityResponse);
       }
     }, MOCK_API_DELAY);
   });
@@ -300,5 +340,23 @@ export const generateQuantumSimulationAnalysis = (algorithm: string): Promise<st
         setTimeout(() => {
             resolve(mockQuantumSimulationResponse(algorithm));
         }, 2500);
+    });
+};
+
+export const generateRiskAndValueScoreAnalysis = (bond: Bond): Promise<string> => {
+    console.log(`Generating Gemini Risk & Value Score Analysis for: ${bond.isin}`);
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(mockRiskValueScoreAnalysis(bond));
+        }, MOCK_API_DELAY - 500);
+    });
+};
+
+export const generateRegulatoryDashboardSummary = (): Promise<string> => {
+    console.log(`Generating Gemini Regulatory Dashboard Summary`);
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(mockRegulatoryDashboardSummary());
+        }, MOCK_API_DELAY);
     });
 };

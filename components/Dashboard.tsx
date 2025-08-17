@@ -5,8 +5,10 @@ import { generateGeminiAnalysis } from '../services/geminiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BONDS } from '../constants';
 import { Icons } from './Icons';
-import { ViewState, Bond, TransactionEvent } from '../types';
+import { ViewState, Bond, TransactionEvent, User } from '../types';
 import MarketIntelligence from './MarketIntelligence';
+import WalletAndFunds from './WalletAndFunds';
+
 
 const marketData = Array.from({ length: 12 }, (_, i) => ({
   name: new Date(0, i).toLocaleString('default', { month: 'short' }),
@@ -87,12 +89,14 @@ interface DashboardProps {
   navigate: (view: ViewState) => void;
   backendState: any;
   topMovers: Bond[];
+  user: User;
+  onOpenAddFunds: () => void;
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers }) => {
+const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers, user, onOpenAddFunds }) => {
   const [analysis, setAnalysis] = useState<string>('');
-  const [entropy, setEntropy] = useState<string>('');
+  const [liquidityScore, setLiquidityScore] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   const totalVolume = useMemo(() => {
@@ -106,16 +110,16 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
     const fetchAllAnalyses = async () => {
       setIsLoading(true);
       try {
-        const [generalResult, entropyResult] = await Promise.all([
+        const [generalResult, liquidityResult] = await Promise.all([
           generateGeminiAnalysis('general'),
-          generateGeminiAnalysis('entropy')
+          generateGeminiAnalysis('liquidity')
         ]);
         setAnalysis(generalResult);
-        setEntropy(entropyResult);
+        setLiquidityScore(liquidityResult);
       } catch (error) {
         console.error("Failed to fetch Gemini analysis:", error);
         setAnalysis("Failed to load market analysis. Please try again later.");
-        setEntropy("N/A");
+        setLiquidityScore("N/A");
       } finally {
         setIsLoading(false);
       }
@@ -123,33 +127,32 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
     fetchAllAnalyses();
   }, []);
   
-  const [entropyScore, entropyText] = useMemo(() => {
-    if (!entropy) return ['N/A', 'Loading...'];
-    // The markdown might add **
-    const cleanedEntropy = entropy.replace(/\*/g, '');
-    const bracketIndex = cleanedEntropy.indexOf('(');
+  const [score, text] = useMemo(() => {
+    if (!liquidityScore) return ['N/A', 'Loading...'];
+    const cleanedScore = liquidityScore.replace(/\*/g, '');
+    const bracketIndex = cleanedScore.indexOf('(');
     if (bracketIndex !== -1) {
-        const scorePart = cleanedEntropy.substring(0, bracketIndex).trim();
-        const textPart = cleanedEntropy.substring(bracketIndex + 1, cleanedEntropy.indexOf(')')).trim();
+        const scorePart = cleanedScore.substring(0, bracketIndex).trim();
+        const textPart = cleanedScore.substring(bracketIndex + 1, cleanedScore.indexOf(')')).trim();
         return [scorePart, textPart];
     }
-    return [cleanedEntropy, ''];
-  }, [entropy]);
+    return [cleanedScore, ''];
+  }, [liquidityScore]);
 
-  const entropyValue = useMemo(() => {
-      if(!entropyScore) return 0;
-      return parseInt(entropyScore.split('/')[0] || '0', 10);
-  }, [entropyScore]);
+  const liquidityNumericValue = useMemo(() => {
+      if(!score) return 0;
+      return parseInt(score.split('/')[0] || '0', 10);
+  }, [score]);
 
 
   return (
     <div className="space-y-8">
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <div className="flex items-center space-x-3 mb-2">
              <Icons.volume />
-             <h3 className="text-lg font-semibold text-brand-text-secondary">Market Volume (Cr)</h3>
+             <h3 className="text-lg font-semibold text-brand-text-secondary">Tokenized Volume (Cr)</h3>
           </div>
           <p className="text-3xl font-bold text-white">₹{(totalVolume / 10000000).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
           <p className="text-sm text-brand-green">+2.5% vs yesterday</p>
@@ -162,27 +165,11 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
           <p className="text-3xl font-bold text-white">{BONDS.length.toLocaleString()}</p>
            <p className="text-sm text-brand-text-secondary">+12 new listings</p>
         </Card>
-        <Card>
-           <div className="flex items-center space-x-3 mb-2">
-            <Icons.yield />
-            <h3 className="text-lg font-semibold text-brand-text-secondary">Average Yield</h3>
-           </div>
-          <p className="text-3xl font-bold text-white">7.82%</p>
-          <p className="text-sm text-brand-red">-0.05% change</p>
-        </Card>
-         <Card>
-            <div className="flex items-center space-x-3 mb-2">
-              <Icons.entropy />
-              <h3 className="text-lg font-semibold text-brand-text-secondary">Market Health</h3>
-            </div>
-            {isLoading ? <Spinner /> : (
-              <>
-                <p className="text-3xl font-bold text-white">{entropyScore}</p>
-                <p className={`text-sm ${entropyValue > 60 ? 'text-brand-green' : 'text-brand-yellow'}`}>{entropyText}</p>
-              </>
-            )}
+         <Card className="md:col-span-2">
+            <WalletAndFunds user={user} onAddFunds={onOpenAddFunds} />
         </Card>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <Card className="lg:col-span-3">
@@ -199,9 +186,17 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, backendState, topMovers
           </ResponsiveContainer>
         </Card>
         <div className="lg:col-span-2 space-y-6">
-            <Card>
-                <h3 className="text-xl font-semibold mb-4">System Health Overview</h3>
-                <SystemHealthOverview backendState={backendState} navigate={navigate} />
+             <Card>
+                <div className="flex items-center space-x-3 mb-2">
+                  <Icons.liquidity />
+                  <h3 className="text-xl font-semibold">Liquidity Score</h3>
+                </div>
+                {isLoading ? <Spinner /> : (
+                  <>
+                    <p className="text-4xl font-bold text-white text-center py-2">{score}</p>
+                    <p className={`text-sm text-center ${liquidityNumericValue > 70 ? 'text-brand-green' : 'text-brand-yellow'}`}>{text}</p>
+                  </>
+                )}
             </Card>
             <Card>
                 <h3 className="text-xl font-semibold mb-4">Top Movers (24h)</h3>
