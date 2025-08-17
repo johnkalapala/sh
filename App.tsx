@@ -19,7 +19,6 @@ import UpiBanner from './components/UpiBanner';
 import UpiMandateModal from './components/UpiMandateModal';
 import ContingencyBanner from './components/ContingencyBanner';
 import AddFundsModal from './components/AddFundsModal';
-import Spinner from './components/shared/Spinner';
 import ProfileSettings from './components/ProfileSettings';
 import CircuitBreakerBanner from './components/CircuitBreakerBanner';
 import DataUploader from './components/DataUploader';
@@ -155,7 +154,13 @@ const App: React.FC = () => {
           {isKycModalOpen && <KycModal onClose={handleCloseKycModal} onKycSubmit={onKycSubmit} />}
           {isUpiModalOpen && <UpiMandateModal onClose={handleCloseUpiModal} onUpiSubmit={onUpiSubmit} />}
           {isAddFundsModalOpen && <AddFundsModal onClose={handleCloseAddFundsModal} onAddFunds={onAddFundsSubmit} />}
-          {isUploaderOpen && <DataUploader onFileLoaded={loadBondsFromFile} onClose={closeUploader} uploadProgress={uploadProgress} isClosable={isCustomDataLoaded || bonds.length > 0} />}
+          <DataUploader 
+            isOpen={isUploaderOpen}
+            onFileLoaded={loadBondsFromFile} 
+            onClose={closeUploader} 
+            uploadProgress={uploadProgress} 
+            isClosable={isCustomDataLoaded || bonds.length > 0} 
+          />
         </main>
       </div>
     </div>

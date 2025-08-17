@@ -5,7 +5,7 @@ import Spinner from './shared/Spinner';
 import backendApiService from '../services/backendApiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Icons } from './Icons';
-import { ViewState, Bond, TransactionEvent, User } from '../types';
+import { ViewState, Bond, User } from '../types';
 import MarketIntelligence from './MarketIntelligence';
 import WalletAndFunds from './WalletAndFunds';
 

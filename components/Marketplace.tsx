@@ -279,7 +279,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({
         </div>
       )}
       <div className="text-right text-sm text-brand-text-secondary pr-2">
-        Showing page with {bonds.length > 0 ? bonds.length : '0'} bonds...
+        Showing page with {bonds.length > 0 ? bonds.length : '0'} of {pagination.totalItems.toLocaleString()} bonds...
       </div>
 
       {renderContent()}

@@ -1,14 +1,16 @@
+
 import React, { useState, useCallback } from 'react';
 import { Icons } from './Icons';
 
 interface DataUploaderProps {
+  isOpen: boolean;
   onFileLoaded: (file: File) => Promise<void>;
   onClose: () => void;
   uploadProgress: number;
   isClosable?: boolean;
 }
 
-const DataUploader: React.FC<DataUploaderProps> = ({ onFileLoaded, onClose, uploadProgress, isClosable = true }) => {
+const DataUploader: React.FC<DataUploaderProps> = ({ isOpen, onFileLoaded, onClose, uploadProgress, isClosable = true }) => {
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,10 @@ const DataUploader: React.FC<DataUploaderProps> = ({ onFileLoaded, onClose, uplo
       setIsParsing(false);
     }
   };
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">

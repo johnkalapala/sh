@@ -1,13 +1,10 @@
 
-
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import { Bond, SystemMetrics, TransactionEvent, AnalyticsLog, ServiceName, ScenarioType, User, PortfolioHolding, ToastMessage } from '../types';
 import { INITIAL_SYSTEM_METRICS, INITIAL_USER_WALLET_BALANCE } from '../constants';
 import backendApiService from '../services/backendApiService';
 import { loadState, saveState, clearState } from '../utils/storage';
 import { parseBondData } from '../utils/parser';
-
-const SERVICE_NAMES: ServiceName[] = ['UserIntf', 'DPI', 'APIGW', 'OrderMatch', 'TokenizSvc', 'Pricing', 'HederaHashgraph', 'RegulatoryGateway', 'Kafka', 'AggregationSvc', 'OrderMatchShard1', 'OrderMatchShard2', 'OrderMatchShard3'];
 
 const initialKycState = {
   status: 'unverified' as 'unverified' | 'pending' | 'verified',

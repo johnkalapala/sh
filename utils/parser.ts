@@ -4,12 +4,12 @@ import { Bond, CreditRating } from '../types';
 // Flexible column mapping to handle variations in CSV headers, based on real data sources
 const COLUMN_MAPPINGS: Partial<Record<keyof Bond, string[]>> = {
   isin: ['isin', 'ISIN'],
-  name: ['name', 'bond_name', 'security description', 'Security_Description'],
-  issuer: ['issuer', 'issuer_name', 'Issuer Name', 'Issuer_Name'],
+  name: ['name', 'bond_name', 'security description', 'Security_Description', 'Issuer Name'],
+  issuer: ['issuer', 'issuer_name', 'Issuer_Name'],
   coupon: ['coupon', 'coupon_rate', 'Coupon Rate', 'Coupon', 'YTM'],
   maturityDate: ['maturityDate', 'maturity_date', 'Maturity Date'],
   creditRating: ['creditRating', 'rating', 'Credit_Rating', 'Credit Rating'],
-  currentPrice: ['currentPrice', 'price', 'last_price', 'Close', 'close_price'],
+  currentPrice: ['currentPrice', 'price', 'last_price', 'Close', 'close_price', 'LTP'],
   volume: ['volume', 'trading_volume', 'Traded Value', 'TradedValue', 'Trading_Volume'],
 };
 
@@ -99,7 +99,7 @@ export const parseBondData = (file: File, onProgress: (progress: number) => void
                     id: isin,
                     isin: isin,
                     name: row[fieldMap.name!] || 'N/A',
-                    issuer: row[fieldMap.issuer!] || 'N/A',
+                    issuer: row[fieldMap.issuer!] || row[fieldMap.name!] || 'N/A',
                     coupon: isNaN(coupon) ? 0 : coupon,
                     maturityDate: row[fieldMap.maturityDate!] || 'N/A',
                     creditRating: (row[fieldMap.creditRating!] as CreditRating) || CreditRating.A,
