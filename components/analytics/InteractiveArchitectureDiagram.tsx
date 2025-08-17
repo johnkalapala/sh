@@ -1,10 +1,11 @@
 import React from 'react';
-import { SystemMetrics, ServiceName } from '../../types';
+import { SystemMetrics, ServiceName, ScenarioType } from '../../types';
 import { Icons } from '../Icons';
 
 interface DiagramProps {
   metrics: SystemMetrics;
   isContingencyMode: boolean;
+  activeScenario: ScenarioType;
 }
 
 type ServicePosition = {
@@ -15,13 +16,13 @@ type ServicePosition = {
 };
 
 const BIO_QUANTUM_POSITIONS: Record<ServiceName, ServicePosition> = {
-    UserIntf: { top: '5%', left: '5%' },
-    DPI: { top: '5%', left: '80%' },
-    APIGW: { top: '35%', left: '5%' },
+    UserIntf: { top: '20%', left: '15%' },
+    DPI: { top: '20%', left: '85%' },
+    APIGW: { top: '50%', left: '10%' },
     OrderMatch: { top: '50%', left: '50%' }, // Center Nucleus
-    TokenizSvc: { top: '35%', left: '80%' },
-    Pricing: { top: '80%', left: '20%' },
-    HederaHashgraph: { top: '80%', left: '65%' },
+    TokenizSvc: { top: '50%', left: '90%' },
+    Pricing: { top: '80%', left: '30%' },
+    HederaHashgraph: { top: '80%', left: '70%' },
 };
 
 const STANDARD_POSITIONS: Record<ServiceName, Required<ServicePosition>> = {
@@ -36,52 +37,48 @@ const STANDARD_POSITIONS: Record<ServiceName, Required<ServicePosition>> = {
 
 const PATHS = {
     BIO_QUANTUM: [
-        { from: 'UserIntf', to: 'DPI', stroke: '#1F6FEB' },
-        { from: 'UserIntf', to: 'APIGW', stroke: '#58A6FF' },
-        { from: 'APIGW', to: 'OrderMatch', stroke: '#58A6FF' },
-        { from: 'OrderMatch', to: 'TokenizSvc', stroke: '#3FB950' },
-        { from: 'TokenizSvc', to: 'HederaHashgraph', stroke: '#D29922' },
-        { from: 'OrderMatch', to: 'HederaHashgraph', stroke: '#D29922' },
-        { from: 'OrderMatch', to: 'Pricing', stroke: '#3FB950' },
-        { from: 'Pricing', to: 'UserIntf', stroke: '#8B949E' },
+        { from: 'UserIntf', to: 'DPI' },
+        { from: 'UserIntf', to: 'APIGW' },
+        { from: 'APIGW', to: 'OrderMatch' },
+        { from: 'OrderMatch', to: 'TokenizSvc' },
+        { from: 'TokenizSvc', to: 'HederaHashgraph' },
+        { from: 'OrderMatch', to: 'HederaHashgraph' },
+        { from: 'OrderMatch', to: 'Pricing' },
+        { from: 'Pricing', to: 'UserIntf' },
     ],
     STANDARD: [
-        { from: 'UserIntf', to: 'DPI', stroke: '#8B949E' },
-        { from: 'UserIntf', to: 'APIGW', stroke: '#8B949E' },
-        { from: 'APIGW', to: 'OrderMatch', stroke: '#8B949E' },
-        { from: 'OrderMatch', to: 'TokenizSvc', stroke: '#8B949E' },
-        { from: 'TokenizSvc', to: 'HederaHashgraph', stroke: '#8B949E' },
-        { from: 'OrderMatch', to: 'Pricing', stroke: '#8B949E' },
-        { from: 'Pricing', to: 'OrderMatch', stroke: '#8B949E' },
+        { from: 'UserIntf', to: 'DPI' },
+        { from: 'UserIntf', to: 'APIGW' },
+        { from: 'APIGW', to: 'OrderMatch' },
+        { from: 'OrderMatch', to: 'TokenizSvc' },
+        { from: 'TokenizSvc', to: 'HederaHashgraph' },
+        { from: 'OrderMatch', to: 'Pricing' },
+        { from: 'Pricing', to: 'OrderMatch' },
     ]
 };
 
-const getStatusColor = (status: 'Operational' | 'Degraded' | 'Down') => {
-    if (status === 'Degraded') return 'text-brand-yellow';
-    if (status === 'Down') return 'text-brand-red';
-    return 'text-brand-green';
-}
 
 const SERVICE_CONFIG: Record<ServiceName, { title: string; desc: string }> = {
     UserIntf: { title: 'User Interface', desc: 'Retail & Institutional' },
     DPI: { title: 'DPI Aadhaar', desc: 'e-KYC Verification' },
-    APIGW: { title: 'API Gateway', desc: 'Auth & Security' },
-    OrderMatch: { title: 'Matching Engine', desc: 'Bio-Inspired Core' },
+    APIGW: { title: 'Membrane Gateway', desc: 'AIS Security' },
+    OrderMatch: { title: 'Quantum Nucleus', desc: 'Bio-Inspired Matching' },
     TokenizSvc: { title: 'Tokenization', desc: 'Fractional Ownership' },
-    Pricing: { title: 'Pricing Engine', desc: 'Quantum-Enhanced' },
+    Pricing: { title: 'Quantum Oracle', desc: 'Enhanced Pricing' },
     HederaHashgraph: { title: 'Settlement Layer', desc: 'Hedera DLT' },
 };
 
 
-const InteractiveArchitectureDiagram: React.FC<DiagramProps> = ({ metrics, isContingencyMode }) => {
+const InteractiveArchitectureDiagram: React.FC<DiagramProps> = ({ metrics, isContingencyMode, activeScenario }) => {
     const mode = isContingencyMode ? 'standard' : 'bio-quantum';
     const positions = isContingencyMode ? STANDARD_POSITIONS : BIO_QUANTUM_POSITIONS;
     const paths = isContingencyMode ? PATHS.STANDARD : PATHS.BIO_QUANTUM;
+    const isUnderAttack = activeScenario === 'API_GATEWAY_OVERLOAD';
 
-    const getPathDefinition = (from: ServiceName, to: ServiceName) => {
+    const getPathDefinition = (from: ServiceName, to: ServiceName, entangled: boolean) => {
         const fromPos = positions[from];
         const toPos = positions[to];
-        if(!fromPos || !toPos) return "";
+        if(!fromPos || !toPos) return entangled ? { d1: "", d2: "" } : "";
 
         const fromX = `calc(${fromPos.left} + ${isContingencyMode ? (parseFloat(fromPos.width!)/2)+'%' : '65px'})`;
         const fromY = `calc(${fromPos.top} + ${isContingencyMode ? (parseFloat(fromPos.height!)/2)+'%' : '65px'})`;
@@ -93,11 +90,22 @@ const InteractiveArchitectureDiagram: React.FC<DiagramProps> = ({ metrics, isCon
         } else {
              const dx = (parseFloat(toPos.left) - parseFloat(fromPos.left));
              const dy = (parseFloat(toPos.top) - parseFloat(fromPos.top));
-             const controlX1 = `calc(${fromX} + ${dx * 0.4}px)`;
-             const controlY1 = `calc(${fromY} + ${dy * 0.1}px)`;
-             const controlX2 = `calc(${toX} - ${dx * 0.1}px)`;
-             const controlY2 = `calc(${toY} - ${dy * 0.4}px)`;
-             return `M ${fromX} ${fromY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${toX} ${toY}`;
+
+             // Path 1
+             const controlX1_1 = `calc(${fromX} + ${dx * 0.4}px)`;
+             const controlY1_1 = `calc(${fromY} + ${dy * 0.1}px)`;
+             const controlX2_1 = `calc(${toX} - ${dx * 0.1}px)`;
+             const controlY2_1 = `calc(${toY} - ${dy * 0.4}px)`;
+             const d1 = `M ${fromX} ${fromY} C ${controlX1_1} ${controlY1_1}, ${controlX2_1} ${controlY2_1}, ${toX} ${toY}`;
+
+             // Path 2 (swapped control points for interwoven effect)
+             const controlX1_2 = `calc(${fromX} + ${dx * 0.1}px)`;
+             const controlY1_2 = `calc(${fromY} + ${dy * 0.4}px)`;
+             const controlX2_2 = `calc(${toX} - ${dx * 0.4}px)`;
+             const controlY2_2 = `calc(${toY} - ${dy * 0.1}px)`;
+             const d2 = `M ${fromX} ${fromY} C ${controlX1_2} ${controlY1_2}, ${controlX2_2} ${controlY2_2}, ${toX} ${toY}`;
+             
+             return { d1, d2 };
         }
     };
 
@@ -105,18 +113,44 @@ const InteractiveArchitectureDiagram: React.FC<DiagramProps> = ({ metrics, isCon
     return (
         <div className={`arch-container ${mode}`}>
             <svg className="svg-overlay">
+                {!isContingencyMode && (
+                    <ellipse
+                        cx="50%" cy="50%" rx="48%" ry="45%"
+                        className={`transition-all duration-500 ${isUnderAttack ? 'stroke-brand-red animate-glow-red' : 'stroke-brand-primary animate-membrane'}`}
+                        fill="none"
+                    />
+                )}
                 <defs>
-                    {paths.map((p, i) => (
-                        <path id={`path-${i}`} key={`path-def-${i}`} d={getPathDefinition(p.from as ServiceName, p.to as ServiceName)} />
-                    ))}
+                    {paths.map((p, i) => {
+                        if (isContingencyMode) {
+                           return <path id={`path-${i}`} key={`path-def-${i}`} d={getPathDefinition(p.from as ServiceName, p.to as ServiceName, false) as string} />
+                        }
+                        const {d1, d2} = getPathDefinition(p.from as ServiceName, p.to as ServiceName, true) as {d1: string, d2: string};
+                        return (
+                           <React.Fragment key={`path-def-${i}`}>
+                             <path id={`path-${i}-a`} d={d1} />
+                             <path id={`path-${i}-b`} d={d2} />
+                           </React.Fragment>
+                        )
+                    })}
                 </defs>
-                {paths.map((p, i) => (
-                    <use key={`path-use-${i}`} href={`#path-${i}`} className="flow-path" style={{ stroke: p.stroke }} />
-                ))}
+
+                {paths.map((p, i) => {
+                    if (isContingencyMode) {
+                        return <use key={`path-use-${i}`} href={`#path-${i}`} className="flow-path" stroke="#8B949E" />
+                    }
+                     return (
+                           <React.Fragment key={`path-use-${i}`}>
+                             <use href={`#path-${i}-a`} className="flow-path" stroke="#58A6FF" />
+                             <use href={`#path-${i}-b`} className="flow-path" stroke="#3FB950" />
+                           </React.Fragment>
+                        )
+                })}
+
                 {!isContingencyMode && paths.map((p, i) => (
                     <circle key={`pulse-${i}`} className="flow-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
                         <animateMotion dur="5s" repeatCount="indefinite">
-                            <mpath href={`#path-${i}`} />
+                            <mpath href={`#path-${i}-a`} />
                         </animateMotion>
                     </circle>
                 ))}
@@ -128,10 +162,13 @@ const InteractiveArchitectureDiagram: React.FC<DiagramProps> = ({ metrics, isCon
                 const config = SERVICE_CONFIG[sKey];
                 const statusClass = metric.status === 'Down' ? 'status-down' : '';
                 const modeStatusClass = isContingencyMode ? 'status-standard' : '';
+                const isNucleus = sKey === 'OrderMatch';
 
                 return (
-                    <div key={key} id={`arch-${key}`} className={`arch-block ${statusClass} ${modeStatusClass}`} style={{ ...pos, transform: mode === 'bio-quantum' ? 'translate(-50%, -50%)' : 'none' }}>
-                       {sKey === 'OrderMatch' && !isContingencyMode && <Icons.brainCircuit className="h-6 w-6 text-brand-primary mb-1"/>}
+                    <div key={key} id={`arch-${key}`} 
+                         className={`arch-block ${statusClass} ${modeStatusClass} ${!isContingencyMode && !isNucleus ? 'organelle' : ''}`} 
+                         style={{ ...pos, transform: mode === 'bio-quantum' ? 'translate(-50%, -50%)' : 'none' }}>
+                       {sKey === 'OrderMatch' && !isContingencyMode && <Icons.brainCircuit className="h-8 w-8 text-brand-primary mb-1"/>}
                         <div className="title text-sm">{isContingencyMode && metric.status === 'Down' ? `(Bypassed) ${config.title}` : config.title}</div>
                         <div className="desc">{config.desc}</div>
                     </div>

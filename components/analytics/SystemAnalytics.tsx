@@ -25,7 +25,7 @@ type ActiveTest = 'normal' | 'volatility' | 'api' | 'dlt' | 'dpi' | 'quantum' | 
 const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
   const [activeTab, setActiveTab] = useState('monitoring');
   const [activeTest, setActiveTest] = useState<ActiveTest>('normal');
-  const { isContingencyMode } = backendState;
+  const { isContingencyMode, activeScenario } = backendState;
 
   const handleTestSelection = (test: ActiveTest, scenario: ScenarioType) => {
       setActiveTest(test);
@@ -93,7 +93,7 @@ const SystemAnalytics: React.FC<SystemAnalyticsProps> = ({ backendState }) => {
                           Mode: {isContingencyMode ? 'Standard Operations' : 'Bio-Quantum'}
                        </div>
                     </div>
-                    <InteractiveArchitectureDiagram metrics={backendState.metrics} isContingencyMode={isContingencyMode} />
+                    <InteractiveArchitectureDiagram metrics={backendState.metrics} isContingencyMode={isContingencyMode} activeScenario={activeScenario} />
                 </Card>
                 <Card>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

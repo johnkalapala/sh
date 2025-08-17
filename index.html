@@ -53,6 +53,18 @@
               'compute-pulse': {
                 'from': { transform: 'scaleY(0.1)', 'background-color': '#1F6FEB' },
                 'to': { transform: 'scaleY(1)', 'background-color': '#58A6FF' }
+              },
+              'quantum-nucleus-pulse': {
+                '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)', 'box-shadow': '0 0 10px #58A6FF', opacity: '1' },
+                '50%': { transform: 'translate(-50%, -50%) scale(1.05)', 'box-shadow': '0 0 25px #58A6FF, 0 0 40px #1F6FEB', opacity: '0.9' },
+              },
+              'membrane-pulse': {
+                '0%, 100%': { 'stroke-opacity': '0.3', 'stroke-width': '3px' },
+                '50%': { 'stroke-opacity': '0.7', 'stroke-width': '5px' },
+              },
+              'organelle-pulse': {
+                  '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' },
+                  '50%': { transform: 'translate(-50%, -50%) scale(1.02)' },
               }
             },
              animation: {
@@ -61,6 +73,9 @@
               'glow-red': 'glow 1.5s ease-in-out infinite',
               'security-glow': 'security-glow 2s ease-in-out infinite',
               'quantum-glow': 'quantum-glow 2.5s ease-in-out infinite',
+              'quantum-nucleus': 'quantum-nucleus-pulse 3s ease-in-out infinite',
+              'membrane': 'membrane-pulse 5s ease-in-out infinite',
+              'organelle': 'organelle-pulse 4s ease-in-out infinite',
             },
           },
         },
@@ -135,8 +150,14 @@
 
       /* Bio-Quantum Mode Styles */
       .bio-quantum .arch-block { border-radius: 9999px; width: 130px; height: 130px; }
-      .bio-quantum #arch-OrderMatch { width: 160px; height: 160px; border-width: 2px; border-color: #58A6FF; }
-      .bio-quantum #arch-Pricing { animation: quantum-glow 2.5s ease-in-out infinite; }
+      .bio-quantum #arch-OrderMatch { 
+          width: 170px; height: 170px; border-width: 2px; border-color: #58A6FF;
+          animation: quantum-nucleus-pulse 3s ease-in-out infinite; 
+      }
+      .bio-quantum .arch-block.organelle {
+          animation: organelle-pulse 4s ease-in-out infinite;
+      }
+      .bio-quantum #arch-Pricing { animation: quantum-glow 2.5s ease-in-out infinite, organelle-pulse 4s ease-in-out infinite; }
       
       /* Standard Mode Styles */
       .standard .arch-block { border-radius: 6px; }
